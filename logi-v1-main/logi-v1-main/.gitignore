@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# environment files
+# .env files are now tracked (user requested)
+
+# OS files
+.DS_Store
+*.pem
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+
+# uploads and temp files
+uploads/
+*.zip
