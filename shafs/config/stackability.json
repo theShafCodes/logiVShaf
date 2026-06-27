@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "_note": "Transport stacking matrix, transcribed from van-calculation.md. canSupportWeightKg=0 means nothing may be stacked on the item. orientationFixed=true forbids rotation (must stay upright). densityKgPerM3 is the weight-estimator fallback when the PDF carries no per-item weight; values lean conservative (over-estimate) so payload limits are never breached.",
+  "fallback": {
+    "stackable": false,
+    "canSupportWeightKg": 0,
+    "orientationFixed": true,
+    "densityKgPerM3": 700
+  },
+  "categories": {
+    "appliance": {
+      "stackable": false,
+      "canSupportWeightKg": 0,
+      "orientationFixed": true,
+      "densityKgPerM3": 250
+    },
+    "top": {
+      "stackable": false,
+      "canSupportWeightKg": 0,
+      "orientationFixed": true,
+      "densityKgPerM3": 700
+    },
+    "base-cabinet": {
+      "stackable": true,
+      "canSupportWeightKg": 80,
+      "orientationFixed": false,
+      "densityKgPerM3": 180
+    },
+    "wall-cabinet": {
+      "stackable": true,
+      "canSupportWeightKg": 30,
+      "orientationFixed": false,
+      "densityKgPerM3": 120
+    },
+    "tall-unit": {
+      "stackable": false,
+      "canSupportWeightKg": 0,
+      "orientationFixed": true,
+      "densityKgPerM3": 160
+    },
+    "accessory": {
+      "stackable": true,
+      "canSupportWeightKg": 20,
+      "orientationFixed": false,
+      "densityKgPerM3": 300
+    }
+  }
+}

@@ -1,0 +1,18 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Scratch
+uploads/
+*.log
+
+# OCR result cache (content-hashed; safe to delete, regenerates on next ingest)
+.ocr-cache/

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "_note": "Table column indices + category code patterns for the Arredo3 line-item table, mirroring logi-v1-main/quotation-extractor/lib/pdf-config.ts. 'weight' is optional (Arredo3 has no per-item weight column) — omit it and the weight-estimator falls back to density. categoryPatterns are tested in order against the product code; first match wins, else defaultCategory.",
+  "columns": {
+    "code": 1,
+    "quantity": 2,
+    "description": 3,
+    "dimensionL": 4,
+    "dimensionH": 5,
+    "dimensionP": 6
+  },
+  "defaultCategory": "base-cabinet",
+  "categoryPatterns": [
+    { "category": "appliance", "pattern": "^E(FOR|FRI|LVS|PIC|CAPPA|MICRO|PIA)" },
+    { "category": "top", "pattern": "^(TOP|ALZ|PIANO)" },
+    { "category": "tall-unit", "pattern": "^(COL|DISP)" },
+    { "category": "wall-cabinet", "pattern": "^(PEN|PNS|PE)" },
+    { "category": "accessory", "pattern": "^(AC|ERUB|LED|LUCE|MAN)" }
+  ]
+}

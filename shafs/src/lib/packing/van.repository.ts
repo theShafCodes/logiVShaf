@@ -1,0 +1,124 @@
+/**
+ * Van fleet source. `VanRepository` is the swap-seam: today a JSON-file reader,
+ * later the ML-1 admin store — callers (packer service, pricer) depend only on
+ * the interface, never on hardcoded vans. Fails loud on a malformed file.
+ */
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { getConfig } from "@/config/env";
+import type { Dimensions, Van } from "@/lib/packing/packing.types";
+
+export interface VanRepository {
+  listVans(): Promise<Van[]>;
+  getVan(id: string): Promise<Van | null>;
+}
+
+export class VanConfigError extends Error {
+  constructor(message: string) {
+    super(`[vans] ${message}`);
+    this.name = "VanConfigError";
+  }
+}
+
+function parseDimensions(value: unknown, where: string): Dimensions {
+  if (typeof value !== "object" || value === null) {
+    throw new VanConfigError(`${where} must be an object`);
+  }
+  const o = value as Record<string, unknown>;
+  const dim = (key: string): number => {
+    const v = o[key];
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) {
+      throw new VanConfigError(`${where}.${key} must be a positive number`);
+    }
+    return v;
+  };
+  return { l: dim("l"), w: dim("w"), h: dim("h") };
+}
+
+function parseVan(value: unknown, i: number): Van {
+  if (typeof value !== "object" || value === null) {
+    throw new VanConfigError(`vans[${i}] must be an object`);
+  }
+  const o = value as Record<string, unknown>;
+  if (typeof o.id !== "string" || o.id.trim() === "") {
+    throw new VanConfigError(`vans[${i}].id must be a non-empty string`);
+  }
+  if (typeof o.label !== "string" || o.label.trim() === "") {
+    throw new VanConfigError(`vans[${i}].label must be a non-empty string`);
+  }
+  const num = (key: string): number => {
+    const v = o[key];
+    if (typeof v !== "number" || !Number.isFinite(v) || v < 0) {
+      throw new VanConfigError(`vans[${i}].${key} must be a non-negative number`);
+    }
+    return v;
+  };
+
+  let doorAperture: Van["doorAperture"];
+  if (o.doorAperture !== undefined) {
+    const d = o.doorAperture as Record<string, unknown>;
+    const ap = (key: string): number => {
+      const v = d?.[key];
+      if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) {
+        throw new VanConfigError(`vans[${i}].doorAperture.${key} must be a positive number`);
+      }
+      return v;
+    };
+    doorAperture = { w: ap("w"), h: ap("h") };
+  }
+
+  return {
+    id: o.id,
+    label: o.label,
+    interior: parseDimensions(o.interior, `vans[${i}].interior`),
+    maxPayloadKg: num("maxPayloadKg"),
+    doorAperture,
+    perMileRate: num("perMileRate"),
+  };
+}
+
+export function parseVansFrom(json: unknown): Van[] {
+  if (typeof json !== "object" || json === null) {
+    throw new VanConfigError("vans file must be a JSON object");
+  }
+  const arr = (json as Record<string, unknown>).vans;
+  if (!Array.isArray(arr) || arr.length === 0) {
+    throw new VanConfigError('"vans" must be a non-empty array');
+  }
+  const vans = arr.map(parseVan);
+  const ids = new Set<string>();
+  for (const v of vans) {
+    if (ids.has(v.id)) throw new VanConfigError(`duplicate van id "${v.id}"`);
+    ids.add(v.id);
+  }
+  return vans;
+}
+
+/** JSON-file implementation. Reads + validates once, then caches. */
+export class FileVanRepository implements VanRepository {
+  private cache: Van[] | null = null;
+
+  async listVans(): Promise<Van[]> {
+    if (this.cache) return this.cache;
+    const path = resolve(process.cwd(), getConfig().packing.vansPath);
+    let raw: string;
+    try {
+      raw = await readFile(path, "utf8");
+    } catch {
+      throw new VanConfigError(`cannot read vans file at ${path}`);
+    }
+    let json: unknown;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      throw new VanConfigError(`vans file is not valid JSON: ${path}`);
+    }
+    this.cache = parseVansFrom(json);
+    return this.cache;
+  }
+
+  async getVan(id: string): Promise<Van | null> {
+    const vans = await this.listVans();
+    return vans.find((v) => v.id === id) ?? null;
+  }
+}

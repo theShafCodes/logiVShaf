@@ -1,0 +1,68 @@
+:root {
+  /* Surface */
+  --color-page-bg:         #F4F5F7;
+  --color-surface:         #FFFFFF;
+  --color-surface-sub:     #F9FAFB;
+  --color-surface-hover:   #F3F4F6;
+
+  /* Borders */
+  --color-border:          #E8EAED;
+  --color-border-strong:   #D1D5DB;
+
+  /* Text */
+  --color-header-bg:       #FFFFFF;
+  --color-text:            #1C1E29;
+  --color-text-sub:        #374151;
+  --color-muted:           #6B7280;
+
+  /* Accent (interactive blue) */
+  --color-accent:          #3B82F6;
+  --color-accent-dark:     #2563EB;
+  --color-accent-muted:    #EFF6FF;
+  --color-accent-border:   #BFDBFE;
+  --color-on-accent:       #FFFFFF;
+
+  /* Fragility states */
+  --color-fragile-bg:      #FEE2E2;
+  --color-fragile-fg:      #991B1B;
+  --color-fragile-border:  #FECACA;
+  --color-standard-bg:     #D1FAE5;
+  --color-standard-fg:     #065F46;
+  --color-standard-border: #A7F3D0;
+  --color-review-bg:       #FEF3C7;
+  --color-review-fg:       #92400E;
+  --color-review-border:   #FDE68A;
+
+  /* Error */
+  --color-error:           #DC2626;
+  --color-error-bg:        #FEF2F2;
+  --color-error-border:    #FECACA;
+
+  /* Status indicator dots */
+  --color-status-idle:       #D1D5DB;
+  --color-status-processing: #F59E0B;
+  --color-status-done:       #10B981;
+
+  /* Shadows */
+  --shadow-card:       0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+/* Responsive layout — only breakpoint rules, no design overrides */
+.page-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .page-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .sidebar-sticky {
+    position: static !important;
+  }
+}

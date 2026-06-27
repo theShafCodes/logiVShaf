@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "_note": "Fleet van presets. interior dimensions and doorAperture in mm; maxPayloadKg in kg; perMileRate carried for Stage 5 pricing (currency-neutral). Forward-compatible with the ML-1 admin CRUD UI, which will write this same shape.",
+  "vans": [
+    {
+      "id": "doblo-maxi",
+      "label": "Fiat Doblò Cargo Maxi",
+      "interior": { "l": 2170, "w": 1714, "h": 1305 },
+      "maxPayloadKg": 1000,
+      "doorAperture": { "w": 1230, "h": 1150 },
+      "perMileRate": 1.1
+    },
+    {
+      "id": "ducato-l2h2",
+      "label": "Fiat Ducato L2H2",
+      "interior": { "l": 3120, "w": 1870, "h": 1932 },
+      "maxPayloadKg": 1400,
+      "doorAperture": { "w": 1520, "h": 1790 },
+      "perMileRate": 1.6
+    },
+    {
+      "id": "ducato-l3h2",
+      "label": "Fiat Ducato L3H2",
+      "interior": { "l": 3705, "w": 1870, "h": 1932 },
+      "maxPayloadKg": 1500,
+      "doorAperture": { "w": 1520, "h": 1790 },
+      "perMileRate": 1.8
+    }
+  ]
+}
