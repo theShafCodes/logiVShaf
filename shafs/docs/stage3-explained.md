@@ -1,5 +1,5 @@
 
-This is the long-form companion to [`load-calculation.md`](load-calculation.md).
+This is the long-form companion to [`implementation-details.md`](implementation-details.md).
 It explains, end to end, how a classified quotation becomes a concrete 3D loading
 plan: what data goes in, every transform it passes through, how the packing
 algorithm decides where each box goes, and how fragility becomes a hard rule.
@@ -83,29 +83,30 @@ flowchart TD
         P["Parse L / H / P + quantity<br/>(Italian numbers)"]
         CAT["Derive category from code<br/>(column-map.ts)"]
         RULE["Resolve stacking rules<br/>(stackability.ts)"]
-        W["Estimate weight<br/>(weight-estimator.ts)"]
+        W["Estimate weight / derive missing depth<br/>(weight-estimator.ts)"]
     end
 
     ITEMS["Item[]"]
     VANS["Van[]<br/>(van.repository.ts -> vans.json)"]
 
     subgraph SVC["Orchestration  (packer.service.ts)"]
-        LOOP["For each van: run the packer"]
-        RANK["Rank vans:<br/>fits-first, then tightest"]
+        LOAD["Load vans from repository<br/>(optionally cap fleet by config)"]
+        LOOP["Pack each candidate van"]
+        RANK["Rank vans:<br/>fits-first, then placed-units, then utilization"]
     end
 
     PACK["HeuristicPacker<br/>(heuristic-packer.ts)"]
     OUT["PackingResult<br/>+ ranking + fitsInSingleVan"]
-    API["POST /api/pack"]
+    API["POST /api/pack<br/>(thin HTTP wrapper)"]
 
     DOC --> J
     CLS --> J
     J --> P --> CAT --> RULE --> W --> ITEMS
+    VANS --> LOAD --> LOOP
     ITEMS --> LOOP
-    VANS --> LOOP
     LOOP --> PACK --> RANK --> OUT
-    API -.calls.-> SVC
-    OUT -.response.-> API
+    API -.delegates to.-> SVC
+    OUT -.returned by.-> API
 ```
 
 The three configuration files (`column-map.json`, `stackability.json`,

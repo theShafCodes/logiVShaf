@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "Write(logi-v1-main/*)",
+      "Edit(logi-v1-main/*)"
+    ]
+  }
+}

@@ -3,18 +3,22 @@
  * patterns) from disk. Mirrors the ruleset loader pattern (load + parse-from
  * hook); fails loud on a malformed file.
  */
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { getConfig } from "@/config/env";
+import { loadJsonFile } from "@/lib/packing/config-loader";
 import type { PackingCategory } from "@/lib/packing/packing.types";
 
 export interface ColumnIndices {
   readonly code: number;
-  readonly quantity: number;
+  /** Optional quantity column; absent ⇒ one unit per row. */
+  readonly quantity?: number;
   readonly description: number;
+  /** Length → van x-axis. */
   readonly dimensionL: number;
+  /** Height → van z-axis. */
   readonly dimensionH: number;
-  readonly dimensionP: number;
+  /** Depth → van y-axis. Absent ⇒ derived from mass ÷ (density × face area). */
+  readonly dimensionP?: number;
   /** Optional per-item weight column; absent ⇒ weight is estimated. */
   readonly weight?: number;
 }
@@ -26,12 +30,17 @@ export interface CategoryPattern {
 
 export interface ColumnMap {
   readonly version: number;
+  /** Multiplier converting source dimension units to millimetres (cm ⇒ 10, mm ⇒ 1). */
+  readonly unitScale: number;
   readonly columns: ColumnIndices;
   readonly defaultCategory: PackingCategory;
   readonly categoryPatterns: CategoryPattern[];
 }
 
 const VALID_CATEGORIES: readonly PackingCategory[] = [
+  "heavy-material",
+  "glass-panel",
+  "light-industrial",
   "appliance",
   "top",
   "base-cabinet",
@@ -66,11 +75,11 @@ function parseColumns(value: unknown): ColumnIndices {
   };
   return {
     code: idx("code")!,
-    quantity: idx("quantity")!,
+    quantity: idx("quantity", true),
     description: idx("description")!,
     dimensionL: idx("dimensionL")!,
     dimensionH: idx("dimensionH")!,
-    dimensionP: idx("dimensionP")!,
+    dimensionP: idx("dimensionP", true),
     weight: idx("weight", true),
   };
 }
@@ -104,8 +113,13 @@ function parseColumnMap(json: unknown): ColumnMap {
   if (!isCategory(obj.defaultCategory)) {
     throw new ColumnMapError('"defaultCategory" is not a known category');
   }
+  const unitScale = obj.unitScale === undefined ? 1 : obj.unitScale;
+  if (typeof unitScale !== "number" || !Number.isFinite(unitScale) || unitScale <= 0) {
+    throw new ColumnMapError('"unitScale" must be a positive number');
+  }
   return {
     version: typeof obj.version === "number" ? obj.version : 0,
+    unitScale,
     columns: parseColumns(obj.columns),
     defaultCategory: obj.defaultCategory,
     categoryPatterns: parsePatterns(obj.categoryPatterns),
@@ -125,19 +139,7 @@ let cached: ColumnMap | null = null;
 export async function loadColumnMap(): Promise<ColumnMap> {
   if (cached) return cached;
   const path = resolve(process.cwd(), getConfig().packing.columnMapPath);
-  let raw: string;
-  try {
-    raw = await readFile(path, "utf8");
-  } catch {
-    throw new ColumnMapError(`cannot read column map at ${path}`);
-  }
-  let json: unknown;
-  try {
-    json = JSON.parse(raw);
-  } catch {
-    throw new ColumnMapError(`column map is not valid JSON: ${path}`);
-  }
-  cached = parseColumnMap(json);
+  cached = await loadJsonFile(path, parseColumnMap, ColumnMapError);
   return cached;
 }
 

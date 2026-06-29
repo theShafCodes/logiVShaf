@@ -3,14 +3,16 @@
  * later the ML-1 admin store — callers (packer service, pricer) depend only on
  * the interface, never on hardcoded vans. Fails loud on a malformed file.
  */
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { getConfig } from "@/config/env";
 import type { Dimensions, Van } from "@/lib/packing/packing.types";
 
 export interface VanRepository {
   listVans(): Promise<Van[]>;
   getVan(id: string): Promise<Van | null>;
+  upsertVan(van: Van): Promise<void>;
+  deleteVan(id: string): Promise<boolean>;
 }
 
 export class VanConfigError extends Error {
@@ -73,7 +75,27 @@ function parseVan(value: unknown, i: number): Van {
     interior: parseDimensions(o.interior, `vans[${i}].interior`),
     maxPayloadKg: num("maxPayloadKg"),
     doorAperture,
+    fuelCostPerMile:
+      o.fuelCostPerMile === undefined
+        ? undefined
+        : (() => {
+            const v = o.fuelCostPerMile;
+            if (typeof v !== "number" || !Number.isFinite(v) || v < 0) {
+              throw new VanConfigError(`vans[${i}].fuelCostPerMile must be a non-negative number`);
+            }
+            return v;
+          })(),
     perMileRate: num("perMileRate"),
+    quantity:
+      o.quantity === undefined
+        ? undefined
+        : (() => {
+            const v = o.quantity;
+            if (typeof v !== "number" || !Number.isFinite(v) || v < 1) {
+              throw new VanConfigError(`vans[${i}].quantity must be a positive integer`);
+            }
+            return Math.round(v);
+          })(),
   };
 }
 
@@ -120,5 +142,27 @@ export class FileVanRepository implements VanRepository {
   async getVan(id: string): Promise<Van | null> {
     const vans = await this.listVans();
     return vans.find((v) => v.id === id) ?? null;
+  }
+
+  async upsertVan(van: Van): Promise<void> {
+    const vans = await this.listVans();
+    const next = vans.filter((v) => v.id !== van.id);
+    next.push(van);
+    await this.save(next);
+  }
+
+  async deleteVan(id: string): Promise<boolean> {
+    const vans = await this.listVans();
+    const next = vans.filter((v) => v.id !== id);
+    if (next.length === vans.length) return false;
+    await this.save(next);
+    return true;
+  }
+
+  private async save(vans: Van[]): Promise<void> {
+    const path = resolve(process.cwd(), getConfig().packing.vansPath);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, JSON.stringify({ version: 1, vans }, null, 2), "utf8");
+    this.cache = vans;
   }
 }

@@ -5,8 +5,8 @@ import type { ClassifiedItem } from "@/types/api";
 
 export function FragilityBadge({ item }: { item: ClassifiedItem }) {
   const fragile = item.fragility === "fragile";
-  const { bg, fg, border } = fragile ? color.fragile : color.standard;
-  const label = fragile ? "Fragile" : "Standard";
+  const { bg, fg, border } = fragile ? color.fragile : item.fragility === "uncertain" ? color.review : color.standard;
+  const label = fragile ? "Fragile" : item.fragility === "uncertain" ? "Standard?" : "Standard";
 
   return (
     <span
@@ -32,7 +32,7 @@ export function FragilityBadge({ item }: { item: ClassifiedItem }) {
         <span
           aria-hidden="true"
           title="Low confidence — needs manual review"
-          style={{ opacity: 0.7 }}
+          style={{ opacity: 0.7, cursor: "help" }}
         >
           ?
         </span>

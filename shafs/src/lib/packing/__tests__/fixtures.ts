@@ -19,6 +19,7 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
     stackable: overrides.stackable ?? true,
     canSupportWeightKg: overrides.canSupportWeightKg ?? 80,
     orientationFixed: overrides.orientationFixed ?? false,
+    maxStackPressureKpa: overrides.maxStackPressureKpa ?? 50,
   };
 }
 

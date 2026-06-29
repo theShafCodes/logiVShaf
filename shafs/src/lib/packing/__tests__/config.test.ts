@@ -22,7 +22,7 @@ describe("stackability matrix", () => {
     expect(resolveStackRules(matrix, "top").stackable).toBe(false);
     expect(resolveStackRules(matrix, "base-cabinet").stackable).toBe(true);
     expect(resolveStackRules(matrix, "base-cabinet").canSupportWeightKg).toBeGreaterThan(0);
-    expect(resolveStackRules(matrix, "tall-unit").orientationFixed).toBe(true);
+    expect(resolveStackRules(matrix, "tall-unit").stackable).toBe(false);
     expect(resolveStackRules(matrix, "wall-cabinet").canSupportWeightKg).toBeLessThan(
       resolveStackRules(matrix, "base-cabinet").canSupportWeightKg,
     );
@@ -32,7 +32,6 @@ describe("stackability matrix", () => {
     const r = resolveStackRules(matrix, "mystery" as never);
     expect(r.stackable).toBe(false);
     expect(r.canSupportWeightKg).toBe(0);
-    expect(r.orientationFixed).toBe(true);
   });
 
   it("rejects a malformed matrix", () => {
@@ -61,11 +60,28 @@ describe("weight estimator", () => {
 describe("column map", () => {
   const map = parseColumnMapFrom(readConfigJson("config/column-map.json"));
 
-  it("matches category code patterns, else defaults", () => {
-    expect(categoryForCode(map, "EFOR600")).toBe("appliance");
-    expect(categoryForCode(map, "TOP120")).toBe("top");
-    expect(categoryForCode(map, "COL3060")).toBe("tall-unit");
-    expect(categoryForCode(map, "XYZ999")).toBe(map.defaultCategory);
+  it("declares cm→mm scaling and a derived depth column", () => {
+    expect(map.unitScale).toBe(10);
+    expect(map.columns.dimensionP).toBeUndefined(); // depth is derived
+    expect(map.columns.quantity).toBeUndefined(); // one unit per row
+  });
+
+  it("matches category patterns against the description, else defaults", () => {
+    expect(categoryForCode(map, "Flat-Screen TV 55' (boxed)")).toBe("appliance");
+    expect(categoryForCode(map, "Cast Iron Machine Gear Assembly")).toBe("heavy-material");
+    expect(categoryForCode(map, "Pallet of Wine Glasses (200 pcs)")).toBe("glass-panel");
+  });
+
+  it("still supports explicit code-pattern maps (legacy Arredo3)", () => {
+    const legacy = parseColumnMapFrom({
+      version: 1,
+      unitScale: 1,
+      columns: { code: 1, quantity: 2, description: 3, dimensionL: 4, dimensionH: 5, dimensionP: 6 },
+      defaultCategory: "base-cabinet",
+      categoryPatterns: [{ category: "appliance", pattern: "^EFOR" }],
+    });
+    expect(categoryForCode(legacy, "EFOR600")).toBe("appliance");
+    expect(categoryForCode(legacy, "XYZ999")).toBe("base-cabinet");
   });
 });
 

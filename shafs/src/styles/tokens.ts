@@ -21,6 +21,7 @@ export const color = {
   fragile:  { bg: "var(--color-fragile-bg)",  fg: "var(--color-fragile-fg)",  border: "var(--color-fragile-border)"  },
   standard: { bg: "var(--color-standard-bg)", fg: "var(--color-standard-fg)", border: "var(--color-standard-border)" },
   review:   { bg: "var(--color-review-bg)",   fg: "var(--color-review-fg)",   border: "var(--color-review-border)"   },
+  success:       "var(--color-success)",
   error:         "var(--color-error)",
   errorBg:       "var(--color-error-bg)",
   errorBorder:   "var(--color-error-border)",

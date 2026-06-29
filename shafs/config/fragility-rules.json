@@ -22,7 +22,11 @@
     { "phrase": "glass wool", "fragility": "standard" },
     { "phrase": "glass fibre", "fragility": "standard" },
     { "phrase": "tempered glass", "fragility": "fragile" },
-    { "phrase": "toughened glass", "fragility": "fragile" }
+    { "phrase": "toughened glass", "fragility": "fragile" },
+    { "phrase": "carbon fibre reinforced", "fragility": "standard" },
+    { "phrase": "carbon fiber reinforced", "fragility": "standard" },
+    { "phrase": "carbon fibre composite", "fragility": "standard" },
+    { "phrase": "carbon fiber composite", "fragility": "standard" }
   ],
 
   "fragile": {

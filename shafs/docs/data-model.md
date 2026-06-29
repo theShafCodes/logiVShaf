@@ -22,7 +22,7 @@ These don't exist as `.ts` yet; they land with their stages. Documented here so 
 
 - **`Item`** — the unit the packer and pricer reason about. `{ name, dimensions: {l,w,h}, weight, quantity, fragility, fragilitySource, category }`. Derived from `ClassifiedItem` + the parsed dimension columns. `fragilitySource` = `rule | llm | override`.
 - **`Quotation`** — `{ items: Item[], sourcePdfRef, extractionMeta }`. The reviewed/corrected job; what the user confirms before packing.
-- **`Van`** — `{ id, label, interior: {l,w,h}, maxWeight, perMileRate, surchargeMultipliers? }`. Configured in admin presets ([admin-van-config.md](admin-van-config.md)); the live source for Stages 3 & 5. Never hardcoded.
+- **`Van`** — `{ id, label, interior: {l,w,h}, maxPayloadKg, doorAperture?, fuelCostPerMile?, perMileRate }`. Configured in admin presets ([admin-van-config.md](admin-van-config.md)); the live source for Stages 3 & 5. Never hardcoded.
 - **`PackingResult`** — `{ van, placements: { itemId, position:{x,y,z}, rotation }[], utilization, unplaced: Item[] }`. Pure serializable geometry — no rendering concern, so Stage 4 is a pure function of it.
 - **`Route`** — `{ origin, destination, distance, duration }`. From the route provider.
 - **`Quote`** — `{ route, van, lineItems, subtotal, surcharges, total }`. `total = distance × van.perMileRate (+ fragility surcharges)`.

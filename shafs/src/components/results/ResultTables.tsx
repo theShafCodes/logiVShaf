@@ -1,13 +1,76 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { th, td, color, font, spacing, radius } from "@/styles/tokens";
-import { FragilityBadge } from "@/components/common/FragilityBadge";
-import type { ClassifiedItem, ExtractedTable, PageContent } from "@/types/api";
+import type { ClassifiedItem, Fragility, PageContent } from "@/types/api";
 
 type ClassMap = Map<string, ClassifiedItem>;
 
 function itemKey(p: number, t: number, r: number) {
   return `${p}-${t}-${r}`;
+}
+
+const FRAG_STYLE: Record<Fragility, { bg: string; fg: string; border: string }> = {
+  fragile:   { bg: color.fragile.bg,  fg: color.fragile.fg,  border: color.fragile.border  },
+  standard:  { bg: color.standard.bg, fg: color.standard.fg, border: color.standard.border },
+  uncertain: { bg: color.review.bg,   fg: color.review.fg,   border: color.review.border   },
+};
+
+function FragilitySelect({ value, confident, onChange }: { value: Fragility; confident: boolean; onChange: (v: Fragility) => void }) {
+  const { bg, fg, border } = FRAG_STYLE[value] ?? FRAG_STYLE.standard;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as Fragility)}
+        style={{ background: bg, color: fg, border: `1px solid ${border}`, borderRadius: 999, padding: "3px 10px", fontSize: font.xs, fontWeight: 600, cursor: "pointer" }}
+      >
+        <option value="fragile">Fragile</option>
+        <option value="standard">Standard</option>
+        <option value="uncertain">Standard?</option>
+      </select>
+      {!confident && <span style={{ fontSize: font.xs, color: color.muted, paddingLeft: 4 }}>low confidence</span>}
+    </div>
+  );
+}
+
+/** Auto-sizing textarea — grows vertically to show full content, no scroll. */
+function AutoTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value);
+        e.target.style.height = "auto";
+        e.target.style.height = `${e.target.scrollHeight}px`;
+      }}
+      style={{
+        width: "100%",
+        boxSizing: "border-box",
+        border: `1px solid ${color.border}`,
+        borderRadius: 6,
+        padding: "4px 6px",
+        font: "inherit",
+        color: color.text,
+        background: color.surfaceSub,
+        resize: "none",
+        overflow: "hidden",
+        minHeight: 28,
+        display: "block",
+        lineHeight: "1.5",
+      }}
+    />
+  );
 }
 
 function clean(cell: string): string {
@@ -17,9 +80,38 @@ function clean(cell: string): string {
 interface Props {
   pages: PageContent[];
   classMap: ClassMap;
+  /** When false, cell inputs and add-row are hidden; fragility select is always visible. */
+  editing: boolean;
+  onCellChange: (pageIndex: number, tableIndex: number, rowIndex: number, colIndex: number, value: string) => void;
+  onSetFragility: (pageIndex: number, tableIndex: number, rowIndex: number, value: Fragility) => void;
+  onAddRow: (pageIndex: number, tableIndex: number) => void;
 }
 
-export function ResultTables({ pages, classMap }: Props) {
+// Frozen-edge styling: header row, the "#" column (left) and the Classification
+// column (right) stay visible while the middle scrolls. Sticky cells need an
+// opaque background or scrolled content shows through them.
+const stickyHeadBase = { position: "sticky" as const, top: 0, zIndex: 2 };
+const stickyLeftCell = {
+  position: "sticky" as const,
+  left: 0,
+  zIndex: 1,
+  background: color.surface,
+};
+const stickyRightCell = {
+  position: "sticky" as const,
+  right: 0,
+  zIndex: 1,
+  background: color.surface,
+};
+
+export function ResultTables({
+  pages,
+  classMap,
+  editing,
+  onCellChange,
+  onSetFragility,
+  onAddRow,
+}: Props) {
   const tables = pages.flatMap((page) =>
     page.tables.map((table) => {
       const classifiedCount = table.rows.filter((_, r) =>
@@ -113,12 +205,15 @@ export function ResultTables({ pages, classMap }: Props) {
             </span>
           </div>
 
-          {/* Table */}
+          {/* Table — scrolls in both axes; header and edge columns stay frozen */}
           <div
             style={{
-              overflowX: "auto",
+              maxHeight: "70vh",
+              overflow: "auto",
               borderRadius: radius.card,
-              border: `1px solid ${color.border}`,
+              border: `1px solid ${isItemTable && editing ? color.accent : color.border}`,
+              boxShadow: isItemTable && editing ? `0 0 0 3px ${color.accentMuted}` : undefined,
+              transition: "border-color 0.15s, box-shadow 0.15s",
             }}
           >
             <table
@@ -135,6 +230,9 @@ export function ResultTables({ pages, classMap }: Props) {
                     scope="col"
                     style={{
                       ...th,
+                      ...stickyHeadBase,
+                      left: 0,
+                      zIndex: 3,
                       width: 44,
                       fontWeight: 400,
                       textTransform: "none",
@@ -145,13 +243,37 @@ export function ResultTables({ pages, classMap }: Props) {
                     #
                   </th>
                   {table.headers.map((h, i) => (
-                    <th key={i} scope="col" style={th}>
+                    <th key={i} scope="col" style={{ ...th, ...stickyHeadBase }}>
                       {clean(h)}
                     </th>
                   ))}
                   {isItemTable && (
-                    <th scope="col" style={{ ...th, width: 130 }}>
-                      Classification
+                    <th
+                      scope="col"
+                      style={{ ...th, ...stickyHeadBase, right: 0, zIndex: 3, width: 150 }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        Classification
+                        <span
+                          title="Auto-classified from the description. In edit mode, 'Override' flips an item between fragile and standard if the guess is wrong."
+                          aria-label="What does Override mean?"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 14,
+                            height: 14,
+                            borderRadius: 999,
+                            border: `1px solid ${color.border}`,
+                            color: color.muted,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            cursor: "help",
+                          }}
+                        >
+                          i
+                        </span>
+                      </span>
                     </th>
                   )}
                 </tr>
@@ -160,24 +282,38 @@ export function ResultTables({ pages, classMap }: Props) {
                 {table.rows.map((row, r) => {
                   const item = classMap.get(itemKey(page.index, table.index, r));
                   return (
-                    <tr
-                      key={r}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLTableRowElement).style.background =
-                          color.surfaceSub)
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLTableRowElement).style.background = "")
-                      }
-                    >
-                      <td style={{ ...td, color: color.muted }}>{r + 1}</td>
+                    <tr key={r}>
+                      <td style={{ ...td, ...stickyLeftCell, color: color.muted }}>{r + 1}</td>
                       {row.map((cell, c) => (
-                        <td key={c} style={td}>
-                          {clean(cell)}
+                        <td
+                          key={c}
+                          style={{
+                            ...td,
+                            minWidth: 120,
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {isItemTable && editing ? (
+                            <AutoTextarea
+                              value={cell}
+                              onChange={(v) => onCellChange(page.index, table.index, r, c, v)}
+                            />
+                          ) : (
+                            clean(cell)
+                          )}
                         </td>
                       ))}
                       {isItemTable && (
-                        <td style={td}>{item && <FragilityBadge item={item} />}</td>
+                        <td style={{ ...td, ...stickyRightCell }}>
+                          {item && (
+                            <FragilitySelect
+                              value={item.fragility}
+                              confident={item.confident}
+                              onChange={(v) => onSetFragility(page.index, table.index, r, v)}
+                            />
+                          )}
+                        </td>
                       )}
                     </tr>
                   );
@@ -185,6 +321,27 @@ export function ResultTables({ pages, classMap }: Props) {
               </tbody>
             </table>
           </div>
+
+          {/* Add-row — edit mode, cargo tables only */}
+          {isItemTable && editing && (
+            <button
+              type="button"
+              onClick={() => onAddRow(page.index, table.index)}
+              style={{
+                marginTop: spacing.sm,
+                border: `1px dashed ${color.border}`,
+                background: color.surfaceSub,
+                color: color.accentDark,
+                borderRadius: radius.button,
+                padding: "6px 12px",
+                fontSize: font.sm,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              + Add row
+            </button>
+          )}
         </div>
       ))}
     </div>

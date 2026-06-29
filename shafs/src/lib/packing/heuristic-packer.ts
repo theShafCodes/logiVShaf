@@ -5,35 +5,86 @@
  *
  * Strategy:
  *   1. expand quantities into units; items with no dimensions are unplaceable;
- *   2. sort non-fragile-first, then largest-volume-first (heavy/sturdy land on
- *      the floor; fragile fall to the end so nothing is stacked on them);
- *   3. place each unit at the lowest-then-nearest free anchor (extreme point)
- *      where it fits the interior, overlaps nothing, and — if stacked — rests
- *      fully on a non-fragile item strong enough to bear it.
+ *   2. sort non-fragile first, then sturdiest base first (high canSupportWeightKg),
+ *      then largest volume — so rated bases land on the floor before the lighter
+ *      items that stack on them; fragile fall to the end so nothing is stacked on
+ *      them;
+ *   3. for each unit, score every valid (anchor × orientation) candidate and pick
+ *      the best: stackable items are rewarded for building vertically on a rated
+ *      base, all items are nudged toward the origin to keep the load compact. This
+ *      replaces the old floor-first scan that spread stackables across the floor
+ *      and left the vertical space empty.
  */
 import { volumeM3 } from "@/lib/packing/geometry";
+import { computeUtilization, validatePlacement } from "@/lib/packing/placement-validator";
 import type {
   Dimensions,
   Item,
   Packer,
   PackingResult,
   Placement,
-  Rotation,
   Van,
   Vec3,
 } from "@/lib/packing/packing.types";
 
-const ALL_ROTATIONS: Rotation[] = ["lwh", "wlh", "lhw", "hlw", "whl", "hwl"];
+/**
+ * Anchor-scoring knobs (physical-world calibration — keep, do not inline).
+ * Scaled so the support bonus dominates the height reward, which dominates the
+ * compaction nudge; ties never hinge on floating-point noise.
+ */
+const W_Z = 1_000;            // reward per mm of height for a stackable item
+const SUPPORT_BONUS = 1_000_000; // flat reward for resting on a rated base (z>0)
+const W_COMPACT = 1;          // penalty per mm of (x+y) distance from the origin
+const W_FLAT = 1;             // penalty per mm of z-dimension for stackable floor items — prefers flat orientations so items can stack on top of each other rather than standing tall and blocking the ceiling
 
-function orientedSize(d: Dimensions, r: Rotation): Vec3 {
-  switch (r) {
-    case "lwh": return { x: d.l, y: d.w, z: d.h };
-    case "wlh": return { x: d.w, y: d.l, z: d.h };
-    case "lhw": return { x: d.l, y: d.h, z: d.w };
-    case "hlw": return { x: d.h, y: d.l, z: d.w };
-    case "whl": return { x: d.w, y: d.h, z: d.l };
-    case "hwl": return { x: d.h, y: d.w, z: d.l };
-  }
+/**
+ * Higher is better. Rewards a stackable item for sitting high on a rated base
+ * (build columns) and nudges every item toward the origin corner (stay compact,
+ * leaving no stranded floor gaps). For stackable items at floor level, prefers
+ * the flat orientation (smallest z-dimension) so subsequent items have room to
+ * stack without hitting the ceiling — "intelligent vertical stacking".
+ * Deterministic — no clock, no randomness.
+ */
+function scoreCandidate(pos: Vec3, size: Vec3, stackable: boolean): number {
+  const verticalReward = stackable ? pos.z * W_Z : 0;
+  const supportBonus = pos.z > 0 ? SUPPORT_BONUS : 0;
+  const compaction = (pos.x + pos.y) * W_COMPACT;
+  // Prefer flat orientations for stackable items: a tall item on the floor wastes
+  // vertical space; a flat item leaves room for a column of stacked boxes above it.
+  const flatBonus = stackable ? -size.z * W_FLAT : 0;
+  return verticalReward + supportBonus - compaction + flatBonus;
+}
+
+/** A candidate box orientation and which of the 6 axis permutations produced it. */
+interface Orientation {
+  readonly size: Vec3;
+  readonly rotationIndex: number;
+}
+
+/**
+ * Up to 6 axis permutations of (l,w,h) mapped to (x,y,z). Index 0 is the natural
+ * orientation. `orientationFixed` items return only index 0 (never tipped). Boxes
+ * with repeated dimensions collapse to fewer unique orientations, deterministically.
+ */
+function orientations(d: Dimensions, orientationFixed: boolean): Orientation[] {
+  const perms: ReadonlyArray<readonly [number, number, number]> = [
+    [d.l, d.w, d.h],
+    [d.l, d.h, d.w],
+    [d.w, d.l, d.h],
+    [d.w, d.h, d.l],
+    [d.h, d.l, d.w],
+    [d.h, d.w, d.l],
+  ];
+  const considered = orientationFixed ? perms.slice(0, 1) : perms;
+  const seen = new Set<string>();
+  const out: Orientation[] = [];
+  considered.forEach((p, rotationIndex) => {
+    const key = `${p[0]}:${p[1]}:${p[2]}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ size: { x: p[0], y: p[1], z: p[2] }, rotationIndex });
+  });
+  return out;
 }
 
 interface Unit {
@@ -44,20 +95,11 @@ interface Unit {
 
 /** Reasons surfaced on `unplaced`, in detection order. */
 const REASON = {
-  missingDims: "missing or unparseable dimensions",
-  exceedsInterior: "larger than the van interior in every orientation",
-  overPayload: "would exceed the van payload limit",
-  noSpace: "no remaining space fits this item",
+  missingDims: "missing dimensions — cannot be packed",
+  exceedsInterior: "exceeds van interior — item cannot fit in any orientation",
+  overPayload: "too heavy — would exceed van payload limit",
+  noSpace: "no space left in this van",
 } as const;
-
-/** Strict overlap on all three axes (touching faces do not overlap). */
-function overlaps(pos: Vec3, size: Vec3, p: Placement): boolean {
-  return (
-    pos.x < p.position.x + p.size.x && p.position.x < pos.x + size.x &&
-    pos.y < p.position.y + p.size.y && p.position.y < pos.y + size.y &&
-    pos.z < p.position.z + p.size.z && p.position.z < pos.z + size.z
-  );
-}
 
 export interface HeuristicOptions {
   /** Clearance slack (mm) when fitting into the interior and matching support faces. */
@@ -71,11 +113,12 @@ export class HeuristicPacker implements Packer {
 
   pack(items: Item[], van: Van): PackingResult {
     const tol = this.opts.toleranceMm;
-    const interior = van.interior;
+    const {interior} = van;
     const placements: Placement[] = [];
     const reasons: Record<string, string> = {};
     /** itemId → count of units that failed to place. */
     const unplacedCounts = new Map<string, number>();
+    const itemById = new Map(items.map((item) => [item.id, item]));
 
     const recordFailure = (item: Item, reason: string) => {
       unplacedCounts.set(item.id, (unplacedCounts.get(item.id) ?? 0) + 1);
@@ -95,11 +138,16 @@ export class HeuristicPacker implements Packer {
       }
     }
 
-    // 2) Non-fragile first, then largest volume first; stable tie-break by id.
+    // 2) Non-fragile first, then sturdiest base first (highest maxStackPressureKpa —
+    //    these go on the floor and other items build on top of them), then largest
+    //    volume; stable tie-break by id.
     units.sort((a, b) => {
       const fa = a.item.fragility === "fragile" ? 1 : 0;
       const fb = b.item.fragility === "fragile" ? 1 : 0;
       if (fa !== fb) return fa - fb;
+      if (b.item.maxStackPressureKpa !== a.item.maxStackPressureKpa) {
+        return b.item.maxStackPressureKpa - a.item.maxStackPressureKpa;
+      }
       if (b.volume !== a.volume) return b.volume - a.volume;
       return a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0;
     });
@@ -115,19 +163,20 @@ export class HeuristicPacker implements Packer {
         continue;
       }
 
-      const rotations = unit.item.orientationFixed ? (["lwh"] as Rotation[]) : ALL_ROTATIONS;
-
-      // Can it ever fit the empty interior in any orientation?
-      const everFits = rotations.some((r) => {
-        const s = orientedSize(unit.dims, r);
-        return s.x <= interior.l + tol && s.y <= interior.w + tol && s.z <= interior.h + tol;
-      });
-      if (!everFits) {
+      // Can it fit the van interior in ANY allowed orientation?
+      const orients = orientations(unit.dims, unit.item.orientationFixed);
+      const fitsInterior = orients.some(
+        (o) =>
+          o.size.x <= interior.l + tol &&
+          o.size.y <= interior.w + tol &&
+          o.size.z <= interior.h + tol,
+      );
+      if (!fitsInterior) {
         recordFailure(unit.item, REASON.exceedsInterior);
         continue;
       }
 
-      const placed = this.tryPlace(unit, rotations, anchors, placements, interior, tol);
+      const placed = this.tryPlace(unit, anchors, placements, interior, tol);
       if (placed === null) {
         recordFailure(unit.item, REASON.noSpace);
         continue;
@@ -138,93 +187,67 @@ export class HeuristicPacker implements Packer {
       anchors = this.nextAnchors(anchors, placed);
     }
 
-    const placedVolumeM3 = placements.reduce(
-      (sum, p) => sum + (p.size.x * p.size.y * p.size.z) / 1_000_000_000,
-      0,
-    );
-    const interiorVolumeM3 = volumeM3(interior);
-    const utilization = interiorVolumeM3 > 0 ? placedVolumeM3 / interiorVolumeM3 : 0;
+    const { volumeFill: utilization } = computeUtilization(placements, interior);
 
-    const unplaced: Item[] = [...unplacedCounts.entries()].map(([id, count]) => {
-      const item = items.find((i) => i.id === id)!;
-      return { ...item, quantity: count };
-    });
+    const unplaced: Item[] = [...unplacedCounts.entries()].map(([id, count]) => ({
+      ...itemById.get(id)!,
+      quantity: count,
+    }));
 
     return { van, placements, utilization, unplaced, reasons };
   }
 
-  /** Lowest-then-nearest anchor, first fitting orientation. null ⇒ no fit. */
+  /**
+   * Best-scoring valid (anchor × orientation) candidate; null ⇒ no fit. Anchors
+   * are visited lowest-then-nearest and a candidate only displaces the incumbent
+   * on a *strictly* higher score, so ties resolve to the lowest, most compact,
+   * lowest-rotation placement — keeping the packer deterministic.
+   */
   private tryPlace(
     unit: Unit,
-    rotations: Rotation[],
     anchors: Vec3[],
     placements: Placement[],
     interior: Dimensions,
     tol: number,
   ): Placement | null {
-    const sorted = [...anchors].sort(
-      (a, b) => a.z - b.z || a.y - b.y || a.x - b.x,
-    );
+    const orients = orientations(unit.dims, unit.item.orientationFixed);
+    const sorted = [...anchors].sort((a, b) => a.z - b.z || a.y - b.y || a.x - b.x);
+
+    let best: Placement | null = null;
+    let bestScore = Number.NEGATIVE_INFINITY;
 
     for (const pos of sorted) {
-      for (const rotation of rotations) {
-        const size = orientedSize(unit.dims, rotation);
-        if (
-          pos.x + size.x > interior.l + tol ||
-          pos.y + size.y > interior.w + tol ||
-          pos.z + size.z > interior.h + tol
-        ) {
-          continue;
+      // Item-policy gate: a non-stackable item may only sit on the floor.
+      if (pos.z > 0 && !unit.item.stackable) continue;
+      for (const o of orients) {
+        const verdict = validatePlacement(
+          {
+            position: pos,
+            size: o.size,
+            weightKg: unit.item.weightKg,
+            fragile: unit.item.fragility === "fragile",
+          },
+          { others: placements, interior, toleranceMm: tol },
+        );
+        if (!verdict.ok) continue;
+        const score = scoreCandidate(pos, o.size, unit.item.stackable);
+        if (score > bestScore) {
+          bestScore = score;
+          best = {
+            itemId: unit.item.id,
+            position: pos,
+            size: o.size,
+            fragile: unit.item.fragility === "fragile",
+            weightKg: unit.item.weightKg,
+            canSupportWeightKg: unit.item.canSupportWeightKg,
+            stackable: unit.item.stackable,
+            maxStackPressureKpa: unit.item.maxStackPressureKpa,
+            rotationIndex: o.rotationIndex,
+          };
         }
-        if (pos.z > 0 && !unit.item.stackable) continue;
-        const candidate: Pick<Placement, "position" | "size"> = { position: pos, size };
-        if (placements.some((p) => overlaps(pos, size, p))) continue;
-        if (pos.z > 0 && !this.isSupported(candidate, unit.item.weightKg, placements, tol)) {
-          continue;
-        }
-        return {
-          itemId: unit.item.id,
-          position: pos,
-          size,
-          rotation,
-          fragile: unit.item.fragility === "fragile",
-          weightKg: unit.item.weightKg,
-          canSupportWeightKg: unit.item.canSupportWeightKg,
-        };
       }
     }
-    return null;
-  }
-
-  /**
-   * A stacked box must rest fully on ONE placement (conservative — no partial
-   * support) whose top face meets the box base, that is non-fragile and rated to
-   * bear the box's weight. This is where the Stage 2 fragility flag becomes a
-   * hard constraint (van-calculation.md:51-55).
-   */
-  private isSupported(
-    box: Pick<Placement, "position" | "size">,
-    weightKg: number,
-    placements: Placement[],
-    tol: number,
-  ): boolean {
-    const bx0 = box.position.x;
-    const bx1 = box.position.x + box.size.x;
-    const by0 = box.position.y;
-    const by1 = box.position.y + box.size.y;
-    for (const p of placements) {
-      const top = p.position.z + p.size.z;
-      if (Math.abs(top - box.position.z) > tol) continue;
-      if (p.fragile) continue;
-      if (p.canSupportWeightKg < weightKg) continue;
-      const covers =
-        p.position.x - tol <= bx0 &&
-        p.position.x + p.size.x + tol >= bx1 &&
-        p.position.y - tol <= by0 &&
-        p.position.y + p.size.y + tol >= by1;
-      if (covers) return true;
-    }
-    return false;
+    return best;
   }
 
   /** Extreme points spawned by a placement: right (+x), beside (+y), atop (+z). */

@@ -190,7 +190,7 @@ function extractConfiguration(fullText: string, config: PDFFormatConfig): Kitche
   const modelMatch = fullText.match(config.patterns.model);
   if (modelMatch) kitchenConfig.model = modelMatch[1];
 
-  const configPatterns = config.configPatterns;
+  const {configPatterns} = config;
 
   const structureMatch = fullText.match(configPatterns.structure);
   if (structureMatch) kitchenConfig.structure = structureMatch[1].trim();

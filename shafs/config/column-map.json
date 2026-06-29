@@ -1,20 +1,19 @@
 {
-  "version": 1,
-  "_note": "Table column indices + category code patterns for the Arredo3 line-item table, mirroring logi-v1-main/quotation-extractor/lib/pdf-config.ts. 'weight' is optional (Arredo3 has no per-item weight column) — omit it and the weight-estimator falls back to density. categoryPatterns are tested in order against the product code; first match wins, else defaultCategory.",
+  "version": 2,
+  "_note": "Column map for the Titan/Apex industrial & retail quotation tables: | Item # | Item Description | Material | Height (cm) | Width (cm) | Weight (kg) |. Dimensions are in CENTIMETRES (unitScale: 10 → mm). The table has only two spatial dimensions; 'dimensionP' (depth) is omitted, so the assembler derives it from mass ÷ (category density × face area). No product-code or quantity column: 'code' points at the description (so categoryPatterns match item text) and quantity defaults to 1 per row. categoryPatterns are tested in order against the description; first match wins, else defaultCategory. Fragility is handled separately in Stage 2. For the legacy Arredo3 format (explicit L/H/P in mm, code column) set unitScale:1 and map all three dimension columns.",
+  "unitScale": 10,
   "columns": {
     "code": 1,
-    "quantity": 2,
-    "description": 3,
+    "description": 1,
+    "dimensionH": 3,
     "dimensionL": 4,
-    "dimensionH": 5,
-    "dimensionP": 6
+    "weight": 5
   },
-  "defaultCategory": "base-cabinet",
+  "defaultCategory": "heavy-material",
   "categoryPatterns": [
-    { "category": "appliance", "pattern": "^E(FOR|FRI|LVS|PIC|CAPPA|MICRO|PIA)" },
-    { "category": "top", "pattern": "^(TOP|ALZ|PIANO)" },
-    { "category": "tall-unit", "pattern": "^(COL|DISP)" },
-    { "category": "wall-cabinet", "pattern": "^(PEN|PNS|PE)" },
-    { "category": "accessory", "pattern": "^(AC|ERUB|LED|LUCE|MAN)" }
+    { "category": "glass-panel",     "pattern": "(Glass|Glazed|Tempered|Laminated|Polycarbonate|Fiberglass|Panel|Cladding|Ductwork|Facade)" },
+    { "category": "light-industrial","pattern": "(PVC|Epoxy|Polymer|Conduit|Coating)" },
+    { "category": "heavy-material",  "pattern": "(Steel|Iron|Concrete|Aluminum|Copper|Ceramic|Grating|Channel|Beam|Pillar|Wire Coil)" },
+    { "category": "appliance",       "pattern": "(TV|Television|Computer|Laptop|Monitor|Screen|Machine|Motor|Gear|Cookware|Appliance|Electronic)" }
   ]
 }

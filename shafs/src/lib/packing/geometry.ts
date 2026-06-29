@@ -3,7 +3,7 @@
  * (logi-v1-main/quotation-extractor/lib/parse-quotation.ts:35,41). Dimensions are
  * millimetres; outputs are m² / m³.
  */
-import type { Dimensions } from "@/lib/packing/packing.types";
+import type { Dimensions, Vec3 } from "@/lib/packing/packing.types";
 
 const MM2_PER_M2 = 1_000_000;
 const MM3_PER_M3 = 1_000_000_000;
@@ -16,4 +16,9 @@ export function surfaceM2(l: number, h: number): number {
 /** volume_m3 = (L × W × H) / 1_000_000_000. */
 export function volumeM3(d: Dimensions): number {
   return (d.l * d.w * d.h) / MM3_PER_M3;
+}
+
+/** volume_m3 for a Vec3 (x/y/z) — used for placement and interior volumes. */
+export function volumeM3Vec3(v: Vec3): number {
+  return (v.x * v.y * v.z) / MM3_PER_M3;
 }

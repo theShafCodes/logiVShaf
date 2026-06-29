@@ -29,6 +29,9 @@ export interface Dimensions {
 
 /** Transport category — drives the stackability matrix (config/stackability.json). */
 export type PackingCategory =
+  | "heavy-material"
+  | "glass-panel"
+  | "light-industrial"
   | "appliance"
   | "top"
   | "base-cabinet"
@@ -42,10 +45,15 @@ export interface StackRules {
   readonly stackable: boolean;
   /** Max mass (kg) this item can bear on top of it. 0 ⇒ nothing may stack on it. */
   readonly canSupportWeightKg: number;
-  /** True ⇒ must stay upright in its given footprint (no rotation, e.g. tall units). */
-  readonly orientationFixed: boolean;
   /** Estimator fallback density (kg/m³) when the PDF carries no per-item weight. */
   readonly densityKgPerM3: number;
+  /** True ⇒ must ship in its natural orientation (no tipping/rotating to fit). */
+  readonly orientationFixed: boolean;
+  /**
+   * Internal crush limit (kPa): the most vertical pressure this item can bear on
+   * its top face before the box above it is refused. See stackPressureKpa.
+   */
+  readonly maxStackPressureKpa: number;
 }
 
 /**
@@ -63,7 +71,10 @@ export interface Item {
   readonly category: PackingCategory;
   readonly stackable: boolean;
   readonly canSupportWeightKg: number;
+  /** True ⇒ must ship in its natural orientation (no tipping/rotating to fit). */
   readonly orientationFixed: boolean;
+  /** Internal vertical-crush limit (kPa) on this item's top face. */
+  readonly maxStackPressureKpa: number;
 }
 
 /** Interior box of a fleet van (config/vans.json). */
@@ -74,25 +85,35 @@ export interface Van {
   readonly maxPayloadKg: number;
   /** Loading aperture (mm); optional gate constraint. */
   readonly doorAperture?: { readonly w: number; readonly h: number };
+  /** Estimated fuel cost per mile for operating-cost views. */
+  readonly fuelCostPerMile?: number;
   /** Carried for Stage 5 pricing; unused by the packer. */
   readonly perMileRate: number;
+  /** Available units in the fleet; undefined → treated as 5 by the allocator. */
+  readonly quantity?: number;
 }
 
-/** Which item dimension maps to each van axis. Identity is `"lwh"` (l→x, w→y, h→z). */
-export type Rotation = "lwh" | "wlh" | "lhw" | "hlw" | "whl" | "hwl";
-
-/** One placed unit of an item. `size` is the footprint after `rotation`. */
+/** One placed unit of an item. Size maps l→x, w→y, h→z (natural orientation). */
 export interface Placement {
   readonly itemId: string;
   /** Bottom-near-left corner of the box in van-space (mm). */
   readonly position: Vec3;
-  /** Oriented size occupying van axes x/y/z (mm). */
+  /** Size in van axes x/y/z (mm): l→x, w→y, h→z. */
   readonly size: Vec3;
-  readonly rotation: Rotation;
   readonly fragile: boolean;
   readonly weightKg: number;
   /** Mass (kg) this placed item can bear on top — used by the support constraint. */
   readonly canSupportWeightKg: number;
+  /** Whether this item may itself rest on another (drives manual-drag elevation policy). */
+  readonly stackable: boolean;
+  /** Internal vertical-crush limit (kPa) on this item's top face. */
+  readonly maxStackPressureKpa: number;
+  /**
+   * Which of the 6 axis permutations of the item's (l,w,h) produced `size`.
+   * 0 = natural (l→x, w→y, h→z). Optional: absent ⇒ natural. Carried for viewer
+   * fidelity and so manual edits can round-trip the chosen orientation.
+   */
+  readonly rotationIndex?: number;
 }
 
 /** Output of packing one job into one van. Pure, serializable geometry. */

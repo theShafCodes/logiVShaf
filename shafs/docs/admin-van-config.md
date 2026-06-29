@@ -6,10 +6,11 @@ The control surface Stages 3 and 5 both depend on — so it exists early, not as
 Admin-entered van presets.
 
 ## Output
-Persisted `Van` presets `{ id, label, interior:{l,w,h}, maxWeight, perMileRate, surchargeMultipliers? }`, read live by the rest of the app.
+Persisted `Van` presets `{ id, label, interior:{l,w,h}, maxPayloadKg, doorAperture?, fuelCostPerMile?, perMileRate }`, read live by the rest of the app.
 
 ## Approach
 - A **CRUD UI** (`src/app/admin/`) over the `Van` collection: create, edit, delete presets.
+- Each preset should make the operational facts obvious at a glance: interior size, payload, door opening, fuel cost per mile, and quote rate.
 - Everything downstream that needs a van — the packer choosing a best-fit, the pricer reading a rate — pulls **live** from this config, never from hardcoded values. Otherwise Stages 3/5 can't be tested realistically.
 - Storage behind a small repository interface (file/DB swappable), config-driven, consistent with the rest of the swap-seam pattern.
 

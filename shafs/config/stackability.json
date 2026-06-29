@@ -1,48 +1,76 @@
 {
   "version": 1,
-  "_note": "Transport stacking matrix, transcribed from van-calculation.md. canSupportWeightKg=0 means nothing may be stacked on the item. orientationFixed=true forbids rotation (must stay upright). densityKgPerM3 is the weight-estimator fallback when the PDF carries no per-item weight; values lean conservative (over-estimate) so payload limits are never breached.",
+  "_note": "Transport stacking matrix. maxStackPressureKpa is the internal vertical-crush limit on the item's top face: the box above is refused when (weight x g / contact area) exceeds it (horizontal forces and an item's own self-weight are out of scope for this model). canSupportWeightKg is retained for reference but no longer gates placement. densityKgPerM3 is the weight-estimator fallback when the PDF carries no per-item weight; values lean conservative (over-estimate) so payload limits are never breached.",
   "fallback": {
     "stackable": false,
     "canSupportWeightKg": 0,
+    "densityKgPerM3": 700,
     "orientationFixed": true,
-    "densityKgPerM3": 700
+    "maxStackPressureKpa": 8
   },
   "categories": {
+    "heavy-material": {
+      "stackable": true,
+      "canSupportWeightKg": 2000,
+      "densityKgPerM3": 5000,
+      "orientationFixed": false,
+      "maxStackPressureKpa": 300
+    },
+    "glass-panel": {
+      "stackable": false,
+      "canSupportWeightKg": 0,
+      "densityKgPerM3": 2500,
+      "orientationFixed": false,
+      "maxStackPressureKpa": 5
+    },
+    "light-industrial": {
+      "stackable": true,
+      "canSupportWeightKg": 500,
+      "densityKgPerM3": 1400,
+      "orientationFixed": false,
+      "maxStackPressureKpa": 150
+    },
     "appliance": {
       "stackable": false,
       "canSupportWeightKg": 0,
+      "densityKgPerM3": 250,
       "orientationFixed": true,
-      "densityKgPerM3": 250
+      "maxStackPressureKpa": 12
     },
     "top": {
       "stackable": false,
       "canSupportWeightKg": 0,
+      "densityKgPerM3": 700,
       "orientationFixed": true,
-      "densityKgPerM3": 700
+      "maxStackPressureKpa": 20
     },
     "base-cabinet": {
       "stackable": true,
       "canSupportWeightKg": 80,
+      "densityKgPerM3": 180,
       "orientationFixed": false,
-      "densityKgPerM3": 180
+      "maxStackPressureKpa": 40
     },
     "wall-cabinet": {
       "stackable": true,
       "canSupportWeightKg": 30,
+      "densityKgPerM3": 120,
       "orientationFixed": false,
-      "densityKgPerM3": 120
+      "maxStackPressureKpa": 25
     },
     "tall-unit": {
       "stackable": false,
       "canSupportWeightKg": 0,
+      "densityKgPerM3": 160,
       "orientationFixed": true,
-      "densityKgPerM3": 160
+      "maxStackPressureKpa": 15
     },
     "accessory": {
       "stackable": true,
       "canSupportWeightKg": 20,
+      "densityKgPerM3": 300,
       "orientationFixed": false,
-      "densityKgPerM3": 300
+      "maxStackPressureKpa": 15
     }
   }
 }

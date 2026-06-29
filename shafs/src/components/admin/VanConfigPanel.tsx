@@ -1,0 +1,223 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { color, font, radius, spacing } from "@/styles/tokens";
+import type { Van } from "@/lib/packing/packing.types";
+
+const emptyVan: Van = {
+  id: "",
+  label: "",
+  interior: { l: 0, w: 0, h: 0 },
+  maxPayloadKg: 0,
+  fuelCostPerMile: 0,
+  perMileRate: 0,
+};
+
+function getField(draft: Van, key: string): string | number {
+  // Interior dimensions stored as mm in config; display as meters
+  if (key === "interior.l") return draft.interior.l ? +(draft.interior.l / 1000).toFixed(3) : "";
+  if (key === "interior.w") return draft.interior.w ? +(draft.interior.w / 1000).toFixed(3) : "";
+  if (key === "interior.h") return draft.interior.h ? +(draft.interior.h / 1000).toFixed(3) : "";
+  const val = draft[key as keyof Van] as string | number | undefined;
+  return val ?? (key === "id" || key === "label" ? "" : "");
+}
+
+function setField(draft: Van, key: string, raw: string): Van {
+  // User inputs meters for dimensions; store as mm
+  if (key === "interior.l") return { ...draft, interior: { ...draft.interior, l: Math.round(Number(raw) * 1000) } };
+  if (key === "interior.w") return { ...draft, interior: { ...draft.interior, w: Math.round(Number(raw) * 1000) } };
+  if (key === "interior.h") return { ...draft, interior: { ...draft.interior, h: Math.round(Number(raw) * 1000) } };
+  const k = key as keyof Van;
+  return { ...draft, [k]: k === "id" || k === "label" ? raw : raw === "" ? undefined : Number(raw) } as Van;
+}
+
+export function VanConfigPanel() {
+  const [vans, setVans] = useState<Van[]>([]);
+  const [draft, setDraft] = useState<Van>(emptyVan);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const load = async () => {
+    const res = await fetch("/api/vans");
+    const data = await res.json();
+    setVans(data.vans ?? []);
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const isEditing = draft.id !== "" && vans.some((v) => v.id === draft.id);
+
+  const save = async () => {
+    setMessage(null);
+    const res = await fetch("/api/vans", {
+      method: isEditing ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(draft),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setDraft(emptyVan);
+      await load();
+      setMessage({ text: isEditing ? "Van updated." : "Van added.", ok: true });
+    } else {
+      setMessage({ text: data.error ?? "Save failed.", ok: false });
+    }
+  };
+
+  const del = async (id: string) => {
+    const res = await fetch("/api/vans", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (draft.id === id) setDraft(emptyVan);
+      setConfirmDeleteId(null);
+      await load();
+      setMessage({ text: "Van deleted.", ok: true });
+    } else {
+      setMessage({ text: data.error ?? "Delete failed.", ok: false });
+    }
+  };
+
+  const field = (key: string, label: string, placeholder: string, type: "text" | "number", opts?: { step?: string; min?: string }) => (
+    <label key={key} style={labelWrap}>
+      <span style={labelText}>{label}</span>
+      <input
+        type={type}
+        value={getField(draft, key)}
+        onChange={(e) => setDraft((d) => setField(d, key, e.target.value))}
+        placeholder={placeholder}
+        step={opts?.step}
+        min={opts?.min}
+        style={inputStyle}
+      />
+    </label>
+  );
+
+  return (
+    <div style={{ background: color.surface, border: `1px solid ${color.border}`, borderRadius: radius.card, padding: spacing.lg, display: "flex", flexDirection: "column", gap: spacing.md }}>
+      <div>
+        <p style={sectionLabel}>Fleet admin</p>
+        <h3 style={{ margin: 0, fontSize: font.md, color: color.text, fontWeight: 700, letterSpacing: "-0.01em" }}>Van config</h3>
+      </div>
+
+      {/* ── Form ── */}
+      <div style={{ borderTop: `1px solid ${color.border}`, paddingTop: spacing.md }}>
+        <p style={{ margin: `0 0 ${spacing.sm}px`, fontSize: font.xs, fontWeight: 600, color: isEditing ? color.text : color.muted }}>
+          {isEditing ? `Editing: ${draft.label || draft.id}` : "Add new van"}
+        </p>
+
+        {/* Identity */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {field("id",    "Van ID",       "e.g. transit-l2", "text")}
+          {field("label", "Display name", "e.g. Transit L2", "text")}
+        </div>
+
+        {/* Capacity + pricing */}
+        <p style={{ ...fieldGroupLabel }}>Capacity &amp; pricing</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {field("maxPayloadKg",    "Max payload (kg)", "e.g. 800",  "number", { min: "0" })}
+          {field("quantity",        "Qty available",    "e.g. 3",    "number", { min: "1" })}
+          {field("perMileRate",     "Rate (£/mi)",      "e.g. 0.90", "number", { min: "0", step: "0.01" })}
+          {field("fuelCostPerMile", "Fuel cost (£/mi)", "e.g. 0.21", "number", { min: "0", step: "0.01" })}
+        </div>
+
+        {/* Dimensions */}
+        <p style={{ ...fieldGroupLabel }}>Interior dimensions (m)</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {field("interior.l", "Length", "e.g. 2.85", "number", { min: "0", step: "0.01" })}
+          {field("interior.w", "Width",  "e.g. 1.80", "number", { min: "0", step: "0.01" })}
+          {field("interior.h", "Height", "e.g. 2.05", "number", { min: "0", step: "0.01" })}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: spacing.md }}>
+          <button type="button" onClick={() => void save()} style={primaryBtn}>
+            {isEditing ? "Update van" : "Add van"}
+          </button>
+          {isEditing && (
+            <button type="button" onClick={() => setDraft(emptyVan)} style={secondaryBtn}>
+              Cancel
+            </button>
+          )}
+        </div>
+
+        {message && (
+          <p style={{ fontSize: font.xs, marginTop: spacing.xs, color: message.ok ? color.success : color.error, margin: `${spacing.xs}px 0 0` }}>
+            {message.text}
+          </p>
+        )}
+      </div>
+
+      {/* ── Van list ── */}
+      <div style={{ borderTop: `1px solid ${color.border}`, paddingTop: spacing.sm }}>
+        <p style={{ margin: `0 0 ${spacing.sm}px`, fontSize: font.xs, fontWeight: 600, color: color.muted }}>
+          {vans.length === 0 ? "No vans configured yet" : `${vans.length} van${vans.length !== 1 ? "s" : ""} — click to edit`}
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflow: "auto" }}>
+          {vans.map((v) => (
+            <div
+              key={v.id}
+              style={{
+                border: `1px solid ${draft.id === v.id ? color.text : color.border}`,
+                borderRadius: radius.badge,
+                padding: "10px 10px 10px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: draft.id === v.id ? color.surfaceSub : "transparent",
+                transition: "background 0.1s",
+              }}
+            >
+              {/* Click-to-edit body */}
+              <button
+                type="button"
+                onClick={() => { setDraft(v); setConfirmDeleteId(null); setMessage(null); }}
+                style={{ border: "none", background: "transparent", padding: 0, color: color.text, cursor: "pointer", textAlign: "left", flex: 1, minWidth: 0 }}
+              >
+                <div style={{ fontWeight: 600, fontSize: font.sm, color: color.text }}>{v.label}</div>
+                <div style={{ fontSize: font.xs, color: color.muted, marginTop: 1 }}>{v.id}</div>
+                <div style={{ fontSize: font.xs, color: color.muted, marginTop: 2 }}>
+                  {(v.interior.l / 1000).toFixed(2)} × {(v.interior.w / 1000).toFixed(2)} × {(v.interior.h / 1000).toFixed(2)} m
+                  {" · "}{v.maxPayloadKg} kg
+                  {v.quantity != null ? ` · qty ${v.quantity}` : ""}
+                  {" · £"}{v.perMileRate.toFixed(2)}/mi
+                </div>
+              </button>
+
+              {/* Delete with inline confirm */}
+              {confirmDeleteId === v.id ? (
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <button type="button" onClick={() => void del(v.id)} style={{ ...secondaryBtn, background: color.fragile.bg, color: color.error, borderColor: color.fragile.border, padding: "4px 8px" }}>
+                    Delete
+                  </button>
+                  <button type="button" onClick={() => setConfirmDeleteId(null)} style={{ ...secondaryBtn, padding: "4px 8px" }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteId(v.id)}
+                  style={{ ...secondaryBtn, flexShrink: 0, padding: "4px 8px" }}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const sectionLabel: React.CSSProperties = { fontSize: font.xs, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: color.muted, margin: "0 0 2px" };
+const fieldGroupLabel: React.CSSProperties = { fontSize: font.xs, fontWeight: 600, color: color.muted, margin: `${spacing.md}px 0 ${spacing.xs}px`, textTransform: "uppercase", letterSpacing: "0.05em" };
+const labelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 3 };
+const labelText: React.CSSProperties = { fontSize: font.xs, color: color.muted, fontWeight: 500 };
+const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "7px 10px", borderRadius: radius.input, border: `1px solid ${color.border}`, background: color.surfaceSub, color: color.text, fontSize: font.sm };
+const baseBtn: React.CSSProperties = { border: `1px solid ${color.border}`, borderRadius: 999, padding: "6px 12px", fontSize: font.xs, fontWeight: 600, cursor: "pointer" };
+const secondaryBtn: React.CSSProperties = { ...baseBtn, background: color.surfaceSub, color: color.text };
+const primaryBtn: React.CSSProperties = { ...baseBtn, background: color.text, color: color.surface, border: `1px solid ${color.text}` };

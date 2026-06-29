@@ -120,6 +120,25 @@ export interface AppConfig {
     /** Cap on how many fleet vans the ranking fallback will evaluate. */
     readonly maxVansToConsider: number;
   };
+  readonly routing: {
+    readonly provider: string;
+    readonly googleMapsApiKey: string;
+    readonly timeoutMs: number;
+    readonly fragilitySurchargePerItem: number;
+    readonly currencySymbol: string;
+  };
+  readonly storage: {
+    /** Archive the source PDF + structured document to R2. Off unless explicitly enabled. */
+    readonly enabled: boolean;
+    readonly accountId: string;
+    readonly accessKeyId: string;
+    readonly secretAccessKey: string;
+    readonly bucket: string;
+  };
+  readonly quoteHistory: {
+    /** JSON file holding successful quote snapshots for the admin history list. */
+    readonly path: string;
+  };
   readonly observability: {
     readonly logLevel: LogLevel;
     readonly logPretty: boolean;
@@ -131,7 +150,7 @@ function buildConfig(raw: RawEnv): AppConfig {
   return {
     ocr: {
       provider: readString(raw, "OCR_PROVIDER", "mistral"),
-      apiKey: readString(raw, "MISTRAL_API_KEY"),
+      apiKey: readString(raw, "MISTRAL_API_KEY", ""),
       model: readString(raw, "MISTRAL_OCR_MODEL", "mistral-ocr-latest"),
       timeoutMs: readInt(raw, "OCR_TIMEOUT_MS", 120_000),
       maxRetries: readInt(raw, "OCR_MAX_RETRIES", 2),
@@ -164,7 +183,24 @@ function buildConfig(raw: RawEnv): AppConfig {
       columnMapPath: readString(raw, "PACKING_COLUMN_MAP_PATH", "config/column-map.json"),
       vansPath: readString(raw, "PACKING_VANS_PATH", "config/vans.json"),
       toleranceMm: readFloat(raw, "PACKING_TOLERANCE_MM", 5),
-      maxVansToConsider: readInt(raw, "PACKING_MAX_VANS", 10),
+      maxVansToConsider: readInt(raw, "PACKING_MAX_VANS", 50),
+    },
+    routing: {
+      provider: readString(raw, "ROUTE_PROVIDER", "google"),
+      googleMapsApiKey: readString(raw, "GOOGLE_MAPS_API_KEY", ""),
+      timeoutMs: readInt(raw, "MAPS_TIMEOUT_MS", 10_000),
+      fragilitySurchargePerItem: readFloat(raw, "FRAGILITY_SURCHARGE_PER_ITEM", 5),
+      currencySymbol: readString(raw, "CURRENCY_SYMBOL", "£"),
+    },
+    storage: {
+      enabled: readBool(raw, "R2_STORAGE_ENABLED", false),
+      accountId: readString(raw, "R2_ACCOUNT_ID", ""),
+      accessKeyId: readString(raw, "R2_ACCESS_KEY_ID", ""),
+      secretAccessKey: readString(raw, "R2_SECRET_ACCESS_KEY", ""),
+      bucket: readString(raw, "R2_BUCKET", ""),
+    },
+    quoteHistory: {
+      path: readString(raw, "QUOTE_HISTORY_PATH", "data/quote-history.json"),
     },
     observability: {
       logLevel: readLogLevel(raw, "LOG_LEVEL", "info"),

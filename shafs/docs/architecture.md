@@ -3,20 +3,16 @@
 ## The pipeline in words
 A user uploads a PDF quotation; the system turns it into a priced, packable job in five stages. Each stage consumes the previous stage's output and nothing else — the data shape is the contract.
 
+```mermaid
+graph LR
+    PDF --> Ingestion["1. Ingestion"]
+    Ingestion --> StructDoc["StructuredDocument"]
+    StructDoc --> Classification["2. Classification"]
+    Classification --> ClassItems["ClassifiedItem[]"]
+    ClassItems --> Packing["3. Packing (Item[] + Van)"]
+    Packing --> Visualization["4. Visualization"]
+    Visualization --> Quote["5. Quote"]
 ```
-PDF ─▶ 1. Ingestion ─▶ StructuredDocument ─▶ 2. Classification ─▶ ClassifiedItem[]
-                                                                      │
-                                                                      ▼
-        5. Quote ◀── 4. Visualization ◀── 3. Packing ◀── Item[] + Van
-```
-
-| Stage | Input | Output | Spec |
-|-------|-------|--------|------|
-| 1 Ingestion | PDF bytes | `StructuredDocument` | [pdf-ingestion.md](pdf-ingestion.md) |
-| 2 Classification | `StructuredDocument` | `ClassificationResult` | [fragility.md](fragility.md) |
-| 3 Packing | `Item[]` + `Van` | `PackingResult` | [load-calculation.md](load-calculation.md) |
-| 4 Visualization | `PackingResult` | (rendered view) | [visualization.md](visualization.md) |
-| 5 Routing + pricing | `Route` + `Van` + `Item[]` | `Quote` | [pricing-routing.md](pricing-routing.md) |
 
 ## Layering: where logic is allowed to live
 Three layers, strictly. Logic only ever flows down.
@@ -32,7 +28,7 @@ Every external or replaceable dependency sits behind an interface + a factory, s
 |------|-----------|---------|--------|
 | OCR engine | `PdfExtractor` (`src/lib/ocr/extractor.types.ts`) | `src/lib/ocr/extractor.factory.ts` | `OCR_PROVIDER` (mistral \| tesseract) |
 | Classifier | `Classifier` (`src/lib/classification/types.ts`) | `src/lib/classification/classifier.factory.ts` | `CLASSIFIER_PROVIDER` (rule \| …) |
-| Route provider *(planned)* | `RouteProvider` | — | Google Maps today |
+| Route provider | `RouteProvider` (`src/lib/routing/types.ts`) | `src/lib/routing/index.ts` | `ROUTE_PROVIDER` (mapbox \| google) |
 
 Downstream code depends only on the interface, never the concrete engine.
 

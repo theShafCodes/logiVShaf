@@ -1,30 +1,244 @@
 {
   "version": 1,
-  "_note": "Fleet van presets. interior dimensions and doorAperture in mm; maxPayloadKg in kg; perMileRate carried for Stage 5 pricing (currency-neutral). Forward-compatible with the ML-1 admin CRUD UI, which will write this same shape.",
+  "_note": "maxPayloadKg values are temporarily inflated (~20x real) so weight stops gating placement while stacking behaviour is being tuned. Restore realistic payloads before pricing/quoting is trusted. Relative ordering between vans is preserved.",
   "vans": [
     {
-      "id": "doblo-maxi",
-      "label": "Fiat Doblò Cargo Maxi",
-      "interior": { "l": 2170, "w": 1714, "h": 1305 },
-      "maxPayloadKg": 1000,
-      "doorAperture": { "w": 1230, "h": 1150 },
-      "perMileRate": 1.1
+      "id": "micro-panel",
+      "label": "Micro Panel Van",
+      "interior": {
+        "l": 1500,
+        "w": 1400,
+        "h": 1180
+      },
+      "maxPayloadKg": 11000,
+      "doorAperture": {
+        "w": 1000,
+        "h": 1020
+      },
+      "fuelCostPerMile": 0.19,
+      "perMileRate": 0.82,
+      "quantity": 3
+    },
+    {
+      "id": "city-compact",
+      "label": "City Compact Van",
+      "interior": {
+        "l": 1750,
+        "w": 1500,
+        "h": 1210
+      },
+      "maxPayloadKg": 13000,
+      "doorAperture": {
+        "w": 1080,
+        "h": 1070
+      },
+      "fuelCostPerMile": 0.21,
+      "perMileRate": 0.9,
+      "quantity": 3
+    },
+    {
+      "id": "small-panel",
+      "label": "Small Panel Van",
+      "interior": {
+        "l": 2050,
+        "w": 1580,
+        "h": 1230
+      },
+      "maxPayloadKg": 15600,
+      "doorAperture": {
+        "w": 1150,
+        "h": 1100
+      },
+      "fuelCostPerMile": 0.23,
+      "perMileRate": 0.98,
+      "quantity": 3
+    },
+    {
+      "id": "partner-long",
+      "label": "Long Wheelbase Van",
+      "interior": {
+        "l": 2160,
+        "w": 1630,
+        "h": 1240
+      },
+      "maxPayloadKg": 17000,
+      "doorAperture": {
+        "w": 1210,
+        "h": 1090
+      },
+      "fuelCostPerMile": 0.25,
+      "perMileRate": 1.02,
+      "quantity": 2
+    },
+    {
+      "id": "medium-panel",
+      "label": "Medium Wheelbase Van",
+      "interior": {
+        "l": 2512,
+        "w": 1636,
+        "h": 1397
+      },
+      "maxPayloadKg": 25000,
+      "doorAperture": {
+        "w": 1260,
+        "h": 1270
+      },
+      "fuelCostPerMile": 0.27,
+      "perMileRate": 1.28,
+      "quantity": 3
+    },
+    {
+      "id": "luton-dropwell",
+      "label": "Luton Dropwell Van",
+      "interior": {
+        "l": 2850,
+        "w": 1800,
+        "h": 2050
+      },
+      "maxPayloadKg": 19000,
+      "doorAperture": {
+        "w": 1700,
+        "h": 1980
+      },
+      "fuelCostPerMile": 0.31,
+      "perMileRate": 1.45,
+      "quantity": 2
     },
     {
       "id": "ducato-l2h2",
-      "label": "Fiat Ducato L2H2",
-      "interior": { "l": 3120, "w": 1870, "h": 1932 },
-      "maxPayloadKg": 1400,
-      "doorAperture": { "w": 1520, "h": 1790 },
-      "perMileRate": 1.6
+      "label": "Large Panel Van",
+      "interior": {
+        "l": 3120,
+        "w": 1870,
+        "h": 1932
+      },
+      "maxPayloadKg": 28000,
+      "doorAperture": {
+        "w": 1520,
+        "h": 1790
+      },
+      "fuelCostPerMile": 0.33,
+      "perMileRate": 1.6,
+      "quantity": 2
     },
     {
       "id": "ducato-l3h2",
-      "label": "Fiat Ducato L3H2",
-      "interior": { "l": 3705, "w": 1870, "h": 1932 },
-      "maxPayloadKg": 1500,
-      "doorAperture": { "w": 1520, "h": 1790 },
-      "perMileRate": 1.8
+      "label": "Extra-Large Panel Van",
+      "interior": {
+        "l": 3705,
+        "w": 1870,
+        "h": 1932
+      },
+      "maxPayloadKg": 30000,
+      "doorAperture": {
+        "w": 1520,
+        "h": 1790
+      },
+      "fuelCostPerMile": 0.35,
+      "perMileRate": 1.8,
+      "quantity": 2
+    },
+    {
+      "id": "sprinter-l3h2",
+      "label": "Long Wheelbase High Roof Van",
+      "interior": {
+        "l": 4320,
+        "w": 1780,
+        "h": 1940
+      },
+      "maxPayloadKg": 32000,
+      "doorAperture": {
+        "w": 1550,
+        "h": 1800
+      },
+      "fuelCostPerMile": 0.38,
+      "perMileRate": 1.95,
+      "quantity": 2
+    },
+    {
+      "id": "transit-xlwb",
+      "label": "Extra-Long Wheelbase Van",
+      "interior": {
+        "l": 4700,
+        "w": 1784,
+        "h": 1960
+      },
+      "maxPayloadKg": 34000,
+      "doorAperture": {
+        "w": 1550,
+        "h": 1820
+      },
+      "fuelCostPerMile": 0.40,
+      "perMileRate": 2.15,
+      "quantity": 2
+    },
+    {
+      "id": "luton-tail-lift",
+      "label": "Luton Box Van",
+      "interior": {
+        "l": 4000,
+        "w": 2000,
+        "h": 2200
+      },
+      "maxPayloadKg": 20000,
+      "doorAperture": {
+        "w": 1900,
+        "h": 2050
+      },
+      "fuelCostPerMile": 0.44,
+      "perMileRate": 2.4,
+      "quantity": 2
+    },
+    {
+      "id": "box-truck-7-5t",
+      "label": "7.5t Box Truck",
+      "interior": {
+        "l": 6000,
+        "w": 2400,
+        "h": 2400
+      },
+      "maxPayloadKg": 56000,
+      "doorAperture": {
+        "w": 2300,
+        "h": 2250
+      },
+      "fuelCostPerMile": 0.55,
+      "perMileRate": 3.1,
+      "quantity": 2
+    },
+    {
+      "id": "box-truck-12t",
+      "label": "12t Box Truck",
+      "interior": {
+        "l": 6800,
+        "w": 2450,
+        "h": 2450
+      },
+      "maxPayloadKg": 100000,
+      "doorAperture": {
+        "w": 2350,
+        "h": 2300
+      },
+      "fuelCostPerMile": 0.70,
+      "perMileRate": 3.65,
+      "quantity": 1
+    },
+    {
+      "id": "box-truck-18t",
+      "label": "18t Box Truck",
+      "interior": {
+        "l": 7200,
+        "w": 2480,
+        "h": 2500
+      },
+      "maxPayloadKg": 180000,
+      "doorAperture": {
+        "w": 2400,
+        "h": 2350
+      },
+      "fuelCostPerMile": 0.92,
+      "perMileRate": 4.2,
+      "quantity": 1
     }
   ]
 }

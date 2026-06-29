@@ -12,6 +12,7 @@ import { loadColumnMap } from "@/lib/packing/column-map";
 import { loadStackabilityMatrix } from "@/lib/packing/stackability";
 import { FileVanRepository, type VanRepository } from "@/lib/packing/van.repository";
 import { HeuristicPacker } from "@/lib/packing/heuristic-packer";
+import { allocateFleet } from "@/lib/packing/fleet-allocator";
 import type { Item, Packer, PackingResult, Van } from "@/lib/packing/packing.types";
 import type { ClassificationResult } from "@/lib/classification/types";
 import type { StructuredDocument } from "@/lib/conversion/types";
@@ -46,10 +47,20 @@ export interface PackJobResult {
   readonly items: Item[];
   /** Units with valid dimensions (missing-dimension rows are never packable). */
   readonly packableUnits: number;
+  /** The chosen fleet, in load order — one PackingResult per van used. */
+  readonly fleet: PackingResult[];
+  /** Convenience alias for fleet[0] (the first/primary van); legacy callers. */
   readonly selected: PackingResult;
+  /** Single-van comparison across the fleet (answers "could one van do it"). */
   readonly ranking: VanRanking[];
-  /** False ⇒ no single configured van holds the whole job. */
+  /** False ⇒ no single configured van holds the whole job (multi-van plan). */
   readonly fitsInSingleVan: boolean;
+  /** Cargo no van in the fleet can carry (oversized / missing dimensions). */
+  readonly unplaced: Item[];
+  /** itemId → why it (or part of it) could not be carried. */
+  readonly reasons: Record<string, string>;
+  /** Σ perMileRate across the chosen fleet — drives the multi-van quote. */
+  readonly totalPerMileRate: number;
   readonly perf: PerfReport;
 }
 
@@ -110,23 +121,39 @@ export async function packJob(
     rankVans(items, vans, packableUnits, deps.packer),
   );
 
-  const selected = ranking[0];
+  // Cheapest combination of vans that carries the WHOLE job (overflow → +vans).
+  const plan = await perf.track("allocate", async () =>
+    allocateFleet(items, vans, deps.packer, {
+      toleranceMm: getConfig().packing.toleranceMm,
+    }),
+  );
+
+  // selected = primary van; fall back to the best single-van attempt when nothing
+  // is packable (so the UI still has a van/interior to render an empty plan).
+  const selected = plan.vans[0] ?? ranking[0]?.result;
   if (!selected) throw new PackingError("no vans available to pack into");
+
   logger.info("packing complete", {
     items: items.length,
     packableUnits,
     vansTried: vans.length,
-    selectedVan: selected.vanId,
-    fits: selected.fits,
-    utilization: Math.round(selected.utilization * 1000) / 1000,
+    vansUsed: plan.vans.length,
+    placedUnits: plan.placedUnits,
+    unplaced: plan.unplaced.length,
+    fitsInSingleVan: plan.fitsInSingleVan,
+    totalPerMileRate: Math.round(plan.totalPerMileRate * 100) / 100,
   });
 
   return {
     items,
     packableUnits,
-    selected: selected.result,
+    fleet: plan.vans,
+    selected,
     ranking,
-    fitsInSingleVan: selected.fits,
+    fitsInSingleVan: plan.fitsInSingleVan,
+    unplaced: plan.unplaced,
+    reasons: plan.reasons,
+    totalPerMileRate: plan.totalPerMileRate,
     perf: perf.report(),
   };
 }

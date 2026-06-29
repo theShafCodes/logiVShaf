@@ -4,9 +4,9 @@
  * the conservative `fallback` row (nothing stacks on it, no rotation). Fails loud
  * on a malformed file. Mirrors the ruleset loader pattern (load + parse-from hook).
  */
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { getConfig } from "@/config/env";
+import { loadJsonFile } from "@/lib/packing/config-loader";
 import type { PackingCategory, StackRules } from "@/lib/packing/packing.types";
 
 export interface StackabilityMatrix {
@@ -39,11 +39,19 @@ function parseRules(obj: unknown, where: string): StackRules {
     if (typeof v !== "boolean") throw new StackabilityError(`${where}.${key} must be a boolean`);
     return v;
   };
+  // Optional: an item with no explicit rule must not be tipped (conservative default).
+  const boolOptional = (key: string, fallback: boolean): boolean => {
+    const v = o[key];
+    if (v === undefined) return fallback;
+    if (typeof v !== "boolean") throw new StackabilityError(`${where}.${key} must be a boolean`);
+    return v;
+  };
   return {
     stackable: bool("stackable"),
     canSupportWeightKg: num("canSupportWeightKg"),
-    orientationFixed: bool("orientationFixed"),
     densityKgPerM3: num("densityKgPerM3"),
+    orientationFixed: boolOptional("orientationFixed", true),
+    maxStackPressureKpa: num("maxStackPressureKpa"),
   };
 }
 
@@ -83,19 +91,7 @@ let cached: StackabilityMatrix | null = null;
 export async function loadStackabilityMatrix(): Promise<StackabilityMatrix> {
   if (cached) return cached;
   const path = resolve(process.cwd(), getConfig().packing.stackabilityPath);
-  let raw: string;
-  try {
-    raw = await readFile(path, "utf8");
-  } catch {
-    throw new StackabilityError(`cannot read matrix file at ${path}`);
-  }
-  let json: unknown;
-  try {
-    json = JSON.parse(raw);
-  } catch {
-    throw new StackabilityError(`matrix file is not valid JSON: ${path}`);
-  }
-  cached = parseMatrix(json);
+  cached = await loadJsonFile(path, parseMatrix, StackabilityError);
   return cached;
 }
 
