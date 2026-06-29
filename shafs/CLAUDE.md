@@ -11,6 +11,7 @@ An automated logistical quoting pipeline that maps dimensions, optimizes 3D spac
 
 ## 2. Core Constraints & Engineering Rules
 * **Hyper-Modular codebase following best coding design practices** - MRMR, loose coupling, high cohesion, SRP, NEVER hardcode! NEVER overengineer!
+* **Config, not constants:** Tunable domain knobs live in JSON — `config/vans.json` (fleet + per-mile rates), `config/stackability.json` (stacking matrix + densities), `config/column-map.json` (table columns + category codes) — and `src/config/env.ts` is the only reader of `process.env`. Change behaviour by editing config, not code.
 * **Design System:** All colors via CSS custom properties in `src/app/globals.css :root`. No hardcoded hex anywhere in `src/`. Palette and component patterns in [`docs/design-system.md`](docs/design-system.md). Visual reference (Moverta aesthetic) in [`docs/ui-reference.md`](docs/ui-reference.md).
 * **Plan & Execute in Micro-Steps:** Break every feature down into independent milestones.
 * Critical, blunt, think independantly completely. Fact-based, no bias
