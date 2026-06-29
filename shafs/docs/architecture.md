@@ -28,7 +28,7 @@ Every external or replaceable dependency sits behind an interface + a factory, s
 |------|-----------|---------|--------|
 | OCR engine | `PdfExtractor` (`src/lib/ocr/extractor.types.ts`) | `src/lib/ocr/extractor.factory.ts` | `OCR_PROVIDER` (mistral \| tesseract) |
 | Classifier | `Classifier` (`src/lib/classification/types.ts`) | `src/lib/classification/classifier.factory.ts` | `CLASSIFIER_PROVIDER` (rule \| …) |
-| Route provider | `RouteProvider` (`src/lib/routing/types.ts`) | `src/lib/routing/index.ts` | `ROUTE_PROVIDER` (mapbox \| google) |
+| Route provider | `RouteProvider` (`src/lib/routing/types.ts`) | `src/lib/routing/index.ts` | `ROUTE_PROVIDER` (google) — Google Routes API v2 |
 
 Downstream code depends only on the interface, never the concrete engine.
 
@@ -42,3 +42,17 @@ Downstream code depends only on the interface, never the concrete engine.
 
 ## Traceability is a first-class output
 Every produced row carries where it came from: `ClassifiedItem` keeps `pageIndex/tableIndex/rowIndex` (maps a decision back to a cell in the preview) plus `confident/matchedTerm/reason` (why it was decided). This is what makes "never guess — flag for review" enforceable in the UI and what later admin overrides hang off.
+
+## Where each stage lives in the code
+Next.js 15 (App Router); everything under `src/`. Core logic is framework-free in `src/lib/`, API routes are thin wrappers, React components render results.
+
+| Stage | Core logic (`src/lib/`) | API route (`src/app/api/`) | UI (`src/components/`) |
+|-------|-------------------------|----------------------------|------------------------|
+| 1 — PDF ingestion | `ocr/`, `conversion/`, `ingestion/` | `ingest/` | `upload/DropZone`, `results/ResultTables` |
+| 2 — Fragility classification | `classification/` | (runs inside `ingest/`) | `results/ClassificationSummary`, `common/FragilityBadge` |
+| 3 — Packing / load calc | `packing/` | `pack/`, `pack/direct/`, `vans/` | `results/PackingResultPanel`, `results/Van3DViewer` |
+| 4 — 3D visualization | — | — | `results/Van3DViewer` |
+| 5 — Routing + pricing | `routing/`, `pricing/` | `quote/`, `map/` | `results/QuotePanel` |
+| Cross-cutting | `logger/`, `perf/`, `storage/`, `util/` | — | `layout/AppHeader` |
+
+Key orchestrators: `ingestion/ingestion.service.ts` (Stage 1) · `packing/packer.service.ts` + `packing/heuristic-packer.ts` (Stage 3) · `pricing/index.ts` + `pricing/calculator.ts` (Stage 5) · `routing/google-maps.provider.ts` (Routes API v2 client).

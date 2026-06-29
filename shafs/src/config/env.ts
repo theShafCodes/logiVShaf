@@ -126,6 +126,8 @@ export interface AppConfig {
     readonly timeoutMs: number;
     readonly fragilitySurchargePerItem: number;
     readonly currencySymbol: string;
+    /** Distance multiplier billed to the customer. 1.0 = one-way, 2.0 = full round trip (van returns to base). */
+    readonly returnFactor: number;
   };
   readonly storage: {
     /** Archive the source PDF + structured document to R2. Off unless explicitly enabled. */
@@ -191,6 +193,7 @@ function buildConfig(raw: RawEnv): AppConfig {
       timeoutMs: readInt(raw, "MAPS_TIMEOUT_MS", 10_000),
       fragilitySurchargePerItem: readFloat(raw, "FRAGILITY_SURCHARGE_PER_ITEM", 5),
       currencySymbol: readString(raw, "CURRENCY_SYMBOL", "£"),
+      returnFactor: readFloat(raw, "ROUTE_RETURN_FACTOR", 2),
     },
     storage: {
       enabled: readBool(raw, "R2_STORAGE_ENABLED", false),

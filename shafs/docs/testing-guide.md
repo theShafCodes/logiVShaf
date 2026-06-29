@@ -14,7 +14,7 @@ npm run lint       # eslint . — lint all TypeScript/TSX
 
 ## Current coverage
 
-98 unit tests across 14 files (all passing):
+104+ unit tests across 14 files (all passing):
 
 | Area | File |
 |------|------|
@@ -78,3 +78,26 @@ in-process (no network, no PDF parsing):
 3. `allocateFleet` — picks the cheapest van fleet
 4. `calculateQuote` — prices the job by distance × rate
 5. Full chain: assembly → allocation → pricing → asserts positive total
+
+---
+
+## Manual end-to-end script
+
+Run after any significant change. Dev server: `npm run dev` (port 3000); `.env` with
+`MISTRAL_API_KEY` + `GOOGLE_MAPS_API_KEY`; sample `shafs/INDUSTRIAL_QUOTATION.pdf`.
+
+| Step | Action | Pass if | Fail if |
+|------|--------|---------|---------|
+| 1 — Upload | Drop the PDF on the drop zone | Spinner → item table (~20 items, ~11 fragile); perf timings show | Error banner / no table / spinner stuck |
+| 2 — Classification | Override a fragile item's badge to standard | Badge flips, "manual override" on hover, packing re-runs | Override has no effect |
+| 3 — Packing | Scroll to Packing section | Fleet card + 3D viewer render; some items `z>0`; volume % shown | Viewer blank / all at z=0 / NaN |
+| 4 — Oversized | Inspect "Unplaced items" | 12 m I-Beam listed unplaced with "exceeds largest van interior" reason; fitting items placed | Beam reported as placed |
+| 5 — Quote | Origin "London, UK" → Destination "Manchester, UK", Get Quote | ~212 mi, per-van line items, surcharges, positive total | Total £0 / route not found |
+| 6 — Reset | "Start Over / New Quote" | All fields + tables + viewer clear | Old results persist |
+| 7 — History | Refresh, expand Quote History | Last quote is first entry; count grows | Empty after a success |
+| 8 — Admin | Edit a van's per-mile rate ±0.10, save | List updates; re-quote reflects new rate | Not persisted / total unchanged |
+
+Edge cases: PDF with no tables → "No tables found"; all-fragile → high surcharge line;
+heavy items over payload → fleet adds a van; origin = destination → distance 0, total =
+surcharges only; missing `GOOGLE_MAPS_API_KEY` → "Routing API not configured" but packing
+still works.

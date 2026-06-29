@@ -82,4 +82,33 @@ describe("calculateQuote", () => {
   it("throws PricingError when no vans are supplied", () => {
     expect(() => calculateQuote(route, [], 0, 5)).toThrow(PricingError);
   });
+
+  it("defaults to one-way pricing (returnFactor 1)", () => {
+    const q = calculateQuote(route, [makeVan({ perMileRate: 2.5 })], 0, 5);
+    expect(q.subtotal).toBe(500); // 200 mi × 2.5
+    expect(q.lineItems[0]?.label).not.toMatch(/round trip/);
+  });
+
+  it("doubles billed distance for a round trip (returnFactor 2)", () => {
+    const q = calculateQuote(route, [makeVan({ perMileRate: 2.5 })], 0, 5, "£", undefined, 2);
+    expect(q.subtotal).toBe(1000); // 200 mi × 2 × 2.5
+    expect(q.vans[0]?.distanceCost).toBe(1000);
+    // Reported one-way distance is unchanged; only the billed miles scale.
+    expect(q.route.distanceMiles).toBe(200);
+    expect(q.lineItems[0]?.label).toMatch(/× 2 round trip/);
+    expect(q.lineItems[0]?.label).toMatch(/200\.0 mi/);
+  });
+
+  it("scales the payload-adjusted fuel line by the return factor too", () => {
+    const fuelVan = { ...makeVan({ perMileRate: 2.5, maxPayloadKg: 1600 }), fuelCostPerMile: 0.3 };
+    const oneWay = calculateQuote(route, [fuelVan], 0, 5, "£", [800], 1);
+    const roundTrip = calculateQuote(route, [fuelVan], 0, 5, "£", [800], 2);
+    // A fuel line must exist (distance + fuel = 2 line items), and the whole quote doubles.
+    expect(oneWay.lineItems).toHaveLength(2);
+    expect(roundTrip.subtotal).toBeCloseTo(oneWay.subtotal * 2, 5);
+  });
+
+  it("throws PricingError when returnFactor is not positive", () => {
+    expect(() => calculateQuote(route, [makeVan()], 0, 5, "£", undefined, 0)).toThrow(PricingError);
+  });
 });

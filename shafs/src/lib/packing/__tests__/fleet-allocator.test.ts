@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { allocateFleet } from "@/lib/packing/fleet-allocator";
 import { HeuristicPacker } from "@/lib/packing/heuristic-packer";
-import { makeItem, makeVan } from "./fixtures";
+import { makeItem, makeVan, makeLargeCargo, totalQuantity } from "./fixtures";
 
 const packer = new HeuristicPacker({ toleranceMm: 5 });
 const opts = { toleranceMm: 5 };
@@ -53,6 +53,50 @@ describe("allocateFleet", () => {
     expect(plan.unplaced.map((i) => i.id)).toContain("bad");
     expect(plan.reasons.bad).toMatch(/dimensions/);
     expect(plan.placedUnits).toBe(1);
+  });
+
+  it("prefers fewer vans when two fleets cost the same", () => {
+    // One box per cheap van (rate 1); a big van holds both (rate 2, no fuel ⇒ exact).
+    // Two cheap vans = 2 and one big van = 2: a tie. Tie-break ⇒ the single big van.
+    const cheap = makeVan({ id: "cheap", interior: { l: 700, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 1 });
+    const big = makeVan({ id: "big", interior: { l: 1300, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 2 });
+    const items = [makeItem({ id: "a" }), makeItem({ id: "b" })];
+
+    const plan = allocateFleet(items, [cheap, big], packer, opts);
+
+    expect(plan.totalPerMileRate).toBeCloseTo(2, 5);
+    expect(plan.vans).toHaveLength(1);
+    expect(plan.vans[0]!.van.id).toBe("big");
+  });
+
+  it("carries a large mixed cargo list with no silent drops", () => {
+    const items = makeLargeCargo(200);
+    // Generous availability so van capacity never binds — lets us prove every
+    // packable unit is actually placed, not merely accounted for.
+    const vans = [
+      makeVan({ id: "s", interior: { l: 2050, w: 1580, h: 1230 }, maxPayloadKg: 15600, perMileRate: 0.98, quantity: 20 }),
+      makeVan({ id: "m", interior: { l: 2512, w: 1636, h: 1397 }, maxPayloadKg: 25000, perMileRate: 1.28, quantity: 20 }),
+      makeVan({ id: "l", interior: { l: 3705, w: 1870, h: 1932 }, maxPayloadKg: 30000, perMileRate: 1.8, quantity: 20 }),
+    ];
+
+    const start = Date.now();
+    const plan = allocateFleet(items, vans, packer, opts);
+    const elapsedMs = Date.now() - start;
+
+    // Always-true conservation: every unit is either packable or pre-filtered to
+    // unplaced — nothing vanishes from the accounting.
+    const unplacedQty = totalQuantity(plan.unplaced);
+    expect(plan.packableUnits + unplacedQty).toBe(totalQuantity(items));
+    // With capacity to spare, every packable unit is genuinely carried.
+    expect(plan.placedUnits).toBe(plan.packableUnits);
+
+    // The pre-filtered unplaced carry plain-English reasons.
+    for (const item of plan.unplaced) {
+      expect(plan.reasons[item.id]).toBeTruthy();
+    }
+
+    // Generous bound — asserts it terminates (exact search + greedy fallback), not perf.
+    expect(elapsedMs).toBeLessThan(30_000);
   });
 
   it("flags items larger than every van as unplaced", () => {

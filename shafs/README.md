@@ -48,7 +48,7 @@ Stages 3 & 5).
 
 - [`CLAUDE.md`](CLAUDE.md) — project constitution (vision + engineering rules).
 - [`docs/README.md`](docs/README.md) — docs index.
-- [`docs/code-overview.md`](docs/code-overview.md) — where each stage lives in the code.
+- [`docs/architecture.md`](docs/architecture.md) — pipeline, layering, and where each stage lives in the code.
 - [`docs/api-reference.md`](docs/api-reference.md) — all API endpoints.
 - [`docs/ui-components.md`](docs/ui-components.md) — UI component guide.
 - [`docs/testing-guide.md`](docs/testing-guide.md) — running and writing tests.

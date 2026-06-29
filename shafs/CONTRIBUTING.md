@@ -1,7 +1,7 @@
 # Contributing
 
 How to add to this codebase. The constitution is [`CLAUDE.md`](CLAUDE.md); the
-detailed specs are in [`docs/`](docs/README.md). Read [`docs/code-overview.md`](docs/code-overview.md)
+detailed specs are in [`docs/`](docs/README.md). Read [`docs/architecture.md`](docs/architecture.md)
 first to find where things live.
 
 ## Branching

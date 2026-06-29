@@ -13,8 +13,17 @@
  * falls back to a cost-efficient greedy completion. Pure and deterministic.
  */
 import { volumeM3Vec3 } from "@/lib/packing/geometry";
+import { computeUtilization } from "@/lib/packing/placement-validator";
 import { computeVanCostRate } from "@/lib/packing/van-cost";
 import type { Item, Packer, PackingResult, Van } from "@/lib/packing/packing.types";
+
+/**
+ * Two fleets whose summed per-mile rate differs by less than this are treated as
+ * cost-equal, so the secondary tie-breaks (fewer vans, then fuller vans) decide.
+ * A few pence of rate — small enough that we never pick a meaningfully pricier
+ * fleet just to save a van. Calibration knob: keep, do not inline.
+ */
+const COST_EPS = 0.02;
 
 /**
  * All 6 distinct axis permutations for a box — used when orientationFixed=false to
@@ -113,6 +122,25 @@ interface Allocation {
   readonly vans: PackingResult[];
 }
 
+/** Lowest volume fill across the chosen vans (1 = best, 0 = an empty van). */
+function minFill(alloc: Allocation): number {
+  if (alloc.vans.length === 0) return 1;
+  return Math.min(
+    ...alloc.vans.map((r) => computeUtilization(r.placements, r.van.interior).volumeFill),
+  );
+}
+
+/**
+ * True if `a` is a better fleet than `b`. Cost decides first; within COST_EPS the
+ * fleets are cost-equal, so we prefer fewer vans (simpler, less handling) and then
+ * the one whose emptiest van is fuller (no van running nearly empty). Deterministic.
+ */
+function betterAllocation(a: Allocation, b: Allocation): boolean {
+  if (Math.abs(a.cost - b.cost) > COST_EPS) return a.cost < b.cost;
+  if (a.vans.length !== b.vans.length) return a.vans.length < b.vans.length;
+  return minFill(a) > minFill(b);
+}
+
 export function allocateFleet(
   allItems: Item[],
   vans: Van[],
@@ -159,7 +187,11 @@ export function allocateFleet(
         const payload = result.placements.reduce((s, p) => s + p.weightKg, 0);
         const rate = computeVanCostRate(van, payload);
         const eff = result.placements.reduce((s, p) => s + volumeM3Vec3(p.size), 0) / rate;
-        if (best === null || eff > best.eff) best = { result, van, eff };
+        // Same eff (within a relative epsilon) → prefer the van that clears more
+        // units this step, so fewer vans follow — mirrors the exact search's tie-break.
+        const tie = best !== null && Math.abs(eff - best.eff) <= best.eff * COST_EPS;
+        const better = best === null || (tie ? result.placements.length > best.result.placements.length : eff > best.eff);
+        if (better) best = { result, van, eff };
       }
       if (best === null) break;
       out.push(best.result);
@@ -195,9 +227,9 @@ export function allocateFleet(
       const vanCost = computeVanCostRate(t.van, payload);
       const newAvail = { ...curAvail, [t.van.id]: (curAvail[t.van.id] ?? 0) - 1 };
       const sub = solve(t.result.unplaced, newAvail);
-      const cost = vanCost + sub.cost;
-      if (best === null || cost < best.cost) {
-        best = { cost, vans: [t.result, ...sub.vans] };
+      const candidate: Allocation = { cost: vanCost + sub.cost, vans: [t.result, ...sub.vans] };
+      if (best === null || betterAllocation(candidate, best)) {
+        best = candidate;
       }
     }
     const result = best ?? { cost: 0, vans: [] };

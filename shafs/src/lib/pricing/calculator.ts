@@ -12,8 +12,12 @@ export class PricingError extends Error {
 
 /**
  * Per-van full-route pricing: every vehicle drives the same origin→destination
- * route. Base distance cost = distance × perMileRate. When vanPayloads are
+ * route. Base distance cost = billedMiles × perMileRate. When vanPayloads are
  * supplied, a fuel line item is added per van using the weight-adjusted rate.
+ *
+ * `returnFactor` scales the billed distance to cover the return drive: 1.0 = one-way,
+ * 2.0 = full round trip (the van returns to base empty). `route.distanceMiles` stays
+ * the true one-way figure; only the billed miles are multiplied.
  */
 export function calculateQuote(
   route: Route,
@@ -22,12 +26,19 @@ export function calculateQuote(
   fragilitySurchargePerItem: number,
   currencySymbol = "£",
   vanPayloads?: number[],
+  returnFactor = 1,
 ): Quote {
   if (vans.length === 0) {
     throw new PricingError("at least one van is required to price a job");
   }
+  if (returnFactor <= 0) {
+    throw new PricingError("returnFactor must be positive");
+  }
 
   const multi = vans.length > 1;
+  const billedMiles = route.distanceMiles * returnFactor;
+  const roundTrip = returnFactor !== 1;
+  const tripNote = roundTrip ? ` × ${returnFactor} round trip` : "";
 
   const quoteVans: QuoteVan[] = vans.map((van) => {
     if (van.perMileRate <= 0) {
@@ -38,15 +49,15 @@ export function calculateQuote(
       label: van.label,
       description: describeVan(van.interior, van.maxPayloadKg),
       perMileRate: van.perMileRate,
-      distanceCost: route.distanceMiles * van.perMileRate,
+      distanceCost: billedMiles * van.perMileRate,
     };
   });
 
   // Base distance line items
   const lineItems: QuoteLineItem[] = quoteVans.map((v, i) => ({
     label: multi
-      ? `Van ${i + 1} — distance (${route.distanceMiles.toFixed(1)} mi @ ${currencySymbol}${v.perMileRate.toFixed(2)}/mi)`
-      : `Distance (${route.distanceMiles.toFixed(1)} mi @ ${currencySymbol}${v.perMileRate.toFixed(2)}/mi)`,
+      ? `Van ${i + 1} — distance (${route.distanceMiles.toFixed(1)} mi${tripNote} @ ${currencySymbol}${v.perMileRate.toFixed(2)}/mi)`
+      : `Distance (${route.distanceMiles.toFixed(1)} mi${tripNote} @ ${currencySymbol}${v.perMileRate.toFixed(2)}/mi)`,
     amount: v.distanceCost,
   }));
 
@@ -56,12 +67,12 @@ export function calculateQuote(
     for (let i = 0; i < vans.length; i++) {
       const fuelRate = fuelRateForPayload(vans[i]!, vanPayloads[i] ?? 0);
       if (fuelRate <= 0) continue;
-      const amount = route.distanceMiles * fuelRate;
+      const amount = billedMiles * fuelRate;
       fuelSubtotal += amount;
       lineItems.push({
         label: multi
-          ? `Van ${i + 1} — fuel (${route.distanceMiles.toFixed(1)} mi @ ${currencySymbol}${fuelRate.toFixed(3)}/mi)`
-          : `Fuel (${route.distanceMiles.toFixed(1)} mi @ ${currencySymbol}${fuelRate.toFixed(3)}/mi)`,
+          ? `Van ${i + 1} — fuel (${route.distanceMiles.toFixed(1)} mi${tripNote} @ ${currencySymbol}${fuelRate.toFixed(3)}/mi)`
+          : `Fuel (${route.distanceMiles.toFixed(1)} mi${tripNote} @ ${currencySymbol}${fuelRate.toFixed(3)}/mi)`,
         amount,
       });
     }

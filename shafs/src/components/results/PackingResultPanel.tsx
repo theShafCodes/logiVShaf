@@ -72,6 +72,11 @@ export function PackingResultPanel({
             Weight-constrained load — van selected for payload capacity ({smartNum(fleetPayloadUtil * 100)}% of {smartNum(totalCapacityKg)} kg used), not volume ({smartNum(fleetVolumeUtil * 100)}% fill). Smaller vans in this fleet cannot carry {smartNum(totalWeightKg)} kg in a single trip.
           </p>
         )}
+        {!weightLimited && complete && fleet.length > 1 && (
+          <p style={{ fontSize: font.xs, color: color.muted, marginTop: spacing.sm, marginBottom: 0 }}>
+            Why these {fleet.length} vans — this is the cheapest combination that carries every item. Each van is filled as fully as the load allows, and when two combinations cost the same the one with fewer, fuller vans is chosen.
+          </p>
+        )}
       </div>
 
       {/* Fleet reference — the one table that names the actual vehicles/ids */}
