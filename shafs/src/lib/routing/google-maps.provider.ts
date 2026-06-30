@@ -82,6 +82,7 @@ export class GoogleMapsProvider implements RouteProvider {
       destination,
       distanceMiles: route.distanceMeters / METRES_PER_MILE,
       durationSeconds,
+      distanceMethod: "road",
     };
   }
 }

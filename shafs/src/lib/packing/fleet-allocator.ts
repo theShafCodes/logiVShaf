@@ -51,10 +51,18 @@ export interface FleetPlan {
 }
 
 export interface AllocateOptions {
-  /** Clearance slack (mm), matched to the packer's tolerance. */
-  readonly toleranceMm: number;
+  /** Clearance slack (m), matched to the packer's tolerance. */
+  readonly toleranceM: number;
   /** Search nodes before falling back to greedy completion. */
   readonly nodeBudget?: number;
+  /**
+   * Above this many packable units the exhaustive branch-and-bound is skipped and
+   * the cost-efficient greedy completion is used directly. The exact search re-packs
+   * the whole remaining cargo against every van at every node (≈ nodeBudget × |vans|
+   * full packs) — fine for a typical quote, pathological for a several-hundred-unit
+   * job, where greedy gives an effectively identical fleet at a fraction of the cost.
+   */
+  readonly exactSearchMaxUnits?: number;
 }
 
 function unitsOf(item: Item): number {
@@ -63,6 +71,40 @@ function unitsOf(item: Item): number {
 
 function totalUnits(items: Item[]): number {
   return items.reduce((n, i) => n + unitsOf(i), 0);
+}
+
+/**
+ * Split a cargo list at `k` units: `head` holds at most `k` units (splitting one
+ * item's quantity if it straddles the boundary), `tail` holds the rest. A single
+ * van can only ever hold a few dozen units, so feeding the packer the whole
+ * several-hundred-unit remainder is wasted work — we cap the slice it sees and
+ * carry the tail to the next step. No units are lost: head-unplaced + tail are
+ * merged back before the next pack.
+ */
+function capUnits(items: Item[], k: number): { head: Item[]; tail: Item[] } {
+  const head: Item[] = [];
+  const tail: Item[] = [];
+  let used = 0;
+  for (const it of items) {
+    const q = unitsOf(it);
+    if (used >= k) { tail.push(it); continue; }
+    if (used + q <= k) { head.push(it); used += q; continue; }
+    const take = k - used;
+    head.push({ ...it, quantity: take });
+    tail.push({ ...it, quantity: q - take });
+    used = k;
+  }
+  return { head, tail };
+}
+
+/** Merge two cargo lists, summing quantities of entries that share an id. */
+function mergeById(a: Item[], b: Item[]): Item[] {
+  const map = new Map<string, Item>();
+  for (const it of [...a, ...b]) {
+    const existing = map.get(it.id);
+    map.set(it.id, existing ? { ...existing, quantity: unitsOf(existing) + unitsOf(it) } : it);
+  }
+  return [...map.values()];
 }
 
 /** A single unit of this item fits inside (in some orientation), and is light enough for, some van. */
@@ -95,8 +137,8 @@ function exceedReason(item: Item, vans: Van[]): string {
   const candidates: [number, number, number][] = item.orientationFixed ? [[l, w, h]] : allOrientations(l, w, h);
   const fitsDims = candidates.some(([a, b, c]) => a <= maxL && b <= maxW && c <= maxH);
   if (!fitsDims) {
-    const longestMm = Math.max(l, w, h);
-    return `exceeds largest van interior — item is ${(longestMm / 1000).toFixed(2)} m, max interior is ${(maxL / 1000).toFixed(2)} m`;
+    const longestM = Math.max(l, w, h);
+    return `exceeds largest van interior — item is ${longestM.toFixed(2)} m, max interior is ${maxL.toFixed(2)} m`;
   }
   return `too heavy for any van — ${Math.round(item.weightKg)} kg, fleet max is ${Math.round(maxPayload)} kg`;
 }
@@ -147,8 +189,11 @@ export function allocateFleet(
   packer: Packer,
   opts: AllocateOptions,
 ): FleetPlan {
-  const tol = opts.toleranceMm;
+  const tol = opts.toleranceM;
   const budget = opts.nodeBudget ?? 1500;
+  // Max units handed to any single pack(). A van holds at most a few dozen, so this
+  // bounds per-pack cost without ever starving a van of options to fill it.
+  const packCap = opts.exactSearchMaxUnits ?? 150;
 
   // 1) Separate cargo no van can ever carry — flagged, never searched over.
   const unplaced: Item[] = [];
@@ -180,9 +225,11 @@ export function allocateFleet(
     let cost = 0;
     let avail = { ...curAvail };
     while (totalUnits(rem) > 0) {
+      // Only the densest van can hold a few dozen units, so cap what each pack sees.
+      const { head, tail } = capUnits(rem, packCap);
       let best: { result: PackingResult; van: Van; eff: number } | null = null;
       for (const van of vans.filter((v) => (avail[v.id] ?? 0) > 0)) {
-        const result = packer.pack(rem, van);
+        const result = packer.pack(head, van);
         if (result.placements.length === 0) continue;
         const payload = result.placements.reduce((s, p) => s + p.weightKg, 0);
         const rate = computeVanCostRate(van, payload);
@@ -193,12 +240,17 @@ export function allocateFleet(
         const better = best === null || (tie ? result.placements.length > best.result.placements.length : eff > best.eff);
         if (better) best = { result, van, eff };
       }
-      if (best === null) break;
+      if (best === null) {
+        // Nothing in the head fit any remaining van. If a tail exists the head units
+        // are genuinely unplaceable here (van availability exhausted) — stop to avoid
+        // looping; remaining cargo surfaces as unplaced via the caller.
+        break;
+      }
       out.push(best.result);
       const payload = best.result.placements.reduce((s, p) => s + p.weightKg, 0);
       cost += computeVanCostRate(best.van, payload);
       avail = { ...avail, [best.van.id]: (avail[best.van.id] ?? 0) - 1 };
-      rem = best.result.unplaced;
+      rem = mergeById(best.result.unplaced, tail);
     }
     return { cost, vans: out };
   };
@@ -237,7 +289,15 @@ export function allocateFleet(
     return result;
   };
 
-  const plan = packable.length > 0 ? solve(packable, initAvail) : { cost: 0, vans: [] };
+  // Large jobs skip the exponential exact search and go straight to greedy — the
+  // exact search's value (shaving a van on a tight quote) doesn't survive the cost
+  // of re-packing hundreds of units per node, and greedy mirrors its tie-breaks.
+  const plan =
+    packable.length === 0
+      ? { cost: 0, vans: [] }
+      : packableUnits > packCap
+        ? greedyComplete(packable, initAvail)
+        : solve(packable, initAvail);
   const placedUnits = plan.vans.reduce((n, r) => n + r.placements.length, 0);
 
   return {

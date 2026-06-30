@@ -1,357 +1,302 @@
+# Stage 3 — how the load is arranged (stacking & packing, from first principles)
 
-This is the long-form companion to [`implementation-details.md`](implementation-details.md).
-It explains, end to end, how a classified quotation becomes a concrete 3D loading
-plan: what data goes in, every transform it passes through, how the packing
-algorithm decides where each box goes, and how fragility becomes a hard rule.
+Long-form companion to [`implementation-details.md`](implementation-details.md). It
+explains, end to end, how a classified quotation becomes a concrete 3D loading
+plan — with the **stacking and arranging algorithm** as the centrepiece: the exact
+loops, the geometry, why fragility is a hard rule, and **where the current design
+leaves space on the table** (and the single change that recovers most of it).
 
-Everything here lives in `src/lib/packing/` and is pure, deterministic code —
-given the same input it always produces the same plan, which is what lets Stage 4
-render it and lets us test it exactly.
+Everything here lives in `src/lib/packing/` and is pure, deterministic code:
+same input → same plan, every time. That is what lets Stage 4 render it and lets
+us test it exactly.
 
 ---
 
 ## 1. The job in one sentence
 
-> Given a list of **items** (each with size, weight, fragility) and a fleet of
-> **vans** (each an empty box with a weight limit), figure out **whether** the
-> items fit, **how** they stack in 3D, and **which van** (or how many) to use.
+> Given a list of **items** (size, weight, fragility, stacking rules) and a fleet
+> of **vans** (each an empty box with a payload limit), decide **whether** the
+> items fit, **how** they stack in 3D, and **which van(s)** to use.
 
-This is the *3D bin-packing problem*. Finding the mathematically perfect packing
-is NP-hard (impractical to compute exactly), so we use a **greedy heuristic** —
-a fast, sensible set of rules that gets a good-enough answer every time. That is
-the standard, pragmatic choice for quoting.
+This is *3D bin packing*. The optimal answer is NP-hard, so we use a **greedy
+heuristic** — a fast, sensible rule set that gets a good-enough plan every time.
+The standard, pragmatic choice for quoting. §10 is honest about its limits.
 
 ---
 
-## 2. Where Stage 3 sits in the pipeline
+## 2. Where Stage 3 sits
 
 ```mermaid
 flowchart LR
-    A["Stage 1<br/>PDF -> OCR<br/>StructuredDocument"] --> B["Stage 2<br/>Fragility classify<br/>ClassificationResult"]
+    A["Stage 1<br/>PDF → StructuredDocument"] --> B["Stage 2<br/>Fragility classify"]
     B --> C["Stage 3<br/>Load calculation<br/>PackingResult"]
-    C --> D["Stage 4<br/>3D render"]
-    C --> E["Stage 5<br/>Route + price"]
+    C --> D["Stage 4 · 3D render"]
+    C --> E["Stage 5 · Route + price"]
     style C fill:#cde,stroke:#36c,stroke-width:2px
 ```
 
-Stage 3 consumes the output of Stages 1 and 2 and produces a `PackingResult`,
-which Stages 4 and 5 both read.
+---
+
+## 3. Data in, data out
+
+**In:** a `StructuredDocument` (Stage 1 — tables of cells, the only place
+**dimensions** live) and a `ClassificationResult` (Stage 2 — `fragility` + the
+`(page,table,row)` coordinates, but **no sizes**). Stage 3's first job is to
+**join** them back into one packable `Item`.
+
+**Out — `PackingResult`** (pure geometry, no colours):
+
+```
+PackingResult { van, placements[], utilization, unplaced[], reasons{} }
+Placement     { itemId, position{x,y,z}, size{x,y,z}, rotationIndex,
+                fragile, weightKg, canSupportWeightKg, maxStackPressureKpa, stackable }
+```
+
+Coordinate system (`packing.types.ts`): origin at one bottom corner, **x = van
+length, y = width, z = up**, all metres. PDF `L/H/P` map as **L→l→x, P→w→y,
+H→h→z**.
 
 ---
 
-## 3. The data it starts and ends with
+## 4. Assembling an `Item` (the bridge step)
 
-**Inputs**
+For each classified row, `item-assembler.ts`:
 
-- `StructuredDocument` (Stage 1) — the PDF as pages of tables; each table is a
-  grid of string cells. This is where the **dimensions** physically live.
-- `ClassificationResult` (Stage 2) — a list of `ClassifiedItem`, one per product
-  row, carrying its **fragility** and the `(pageIndex, tableIndex, rowIndex)`
-  coordinates that point back into the document.
+1. Looks up that row's cells in the document; parses `L/H/P` + quantity. Numbers
+   are Italian (`1.234,56` = 1234.56) via `parseItalianNumber()`.
+2. **Never guesses.** Any missing dimension (merged/blank cell) → `dimensions =
+   null`. That unit is later surfaced as `unplaced` ("missing dimensions"),
+   never invented.
+3. Derives a **category** from the product code (`column-map.json`) and resolves
+   its **stacking rules** (`stackability.json`).
+4. Uses the explicit weight if the PDF has one, else estimates
+   `volume × category density` (`weight-estimator.ts`).
 
-**The bridge problem:** Stage 2 tells us *what is fragile* but carries **no
-sizes**. Stage 1 has the sizes but no fragility. Stage 3's first job is to join
-them back together into a single packable `Item`.
-
-**Output — `PackingResult`**
-
-```
-PackingResult {
-  van            // which van this plan is for
-  placements[]   // each placed box: itemId, position {x,y,z}, size, rotation, fragile, weight
-  utilization    // 0..1, how full the van is by volume
-  unplaced[]     // items (or leftover quantity) that did not fit
-  reasons{}      // itemId -> why it could not be placed
-}
-```
-
-It is **pure geometry** — no colors, no rendering. Stage 4 turns it into pictures.
+The three config files (`column-map.json`, `stackability.json`, `vans.json`) are
+the non-hardcoded knobs — edited without touching code.
 
 ---
 
-## 4. The full flow
+## 5. The stacking matrix — what each category may do
 
-```mermaid
-flowchart TD
-    subgraph IN["Inputs"]
-        DOC["StructuredDocument<br/>(tables of cells)"]
-        CLS["ClassificationResult<br/>(fragility + row coords)"]
-    end
+`config/stackability.json` answers four transport questions per category. The
+two that gate placement are **`stackable`** (may this sit on top of anything?)
+and **`maxStackPressureKpa`** (how much vertical pressure its top face bears
+before the box above is refused).
 
-    subgraph ASM["Item assembly  (item-assembler.ts)"]
-        J["Join each classified row<br/>to its table cells"]
-        P["Parse L / H / P + quantity<br/>(Italian numbers)"]
-        CAT["Derive category from code<br/>(column-map.ts)"]
-        RULE["Resolve stacking rules<br/>(stackability.ts)"]
-        W["Estimate weight / derive missing depth<br/>(weight-estimator.ts)"]
-    end
-
-    ITEMS["Item[]"]
-    VANS["Van[]<br/>(van.repository.ts -> vans.json)"]
-
-    subgraph SVC["Orchestration  (packer.service.ts)"]
-        LOAD["Load vans from repository<br/>(optionally cap fleet by config)"]
-        LOOP["Pack each candidate van"]
-        RANK["Rank vans:<br/>fits-first, then placed-units, then utilization"]
-    end
-
-    PACK["HeuristicPacker<br/>(heuristic-packer.ts)"]
-    OUT["PackingResult<br/>+ ranking + fitsInSingleVan"]
-    API["POST /api/pack<br/>(thin HTTP wrapper)"]
-
-    DOC --> J
-    CLS --> J
-    J --> P --> CAT --> RULE --> W --> ITEMS
-    VANS --> LOAD --> LOOP
-    ITEMS --> LOOP
-    LOOP --> PACK --> RANK --> OUT
-    API -.delegates to.-> SVC
-    OUT -.returned by.-> API
-```
-
-The three configuration files (`column-map.json`, `stackability.json`,
-`vans.json`) are the *non-hardcoded knobs* — they can be edited without touching
-code.
-
----
-
-## 5. Step-by-step: assembling an `Item`
-
-For **each** classified row, `item-assembler.ts` does this:
-
-```mermaid
-flowchart TD
-    START["ClassifiedItem<br/>page/table/row + fragility"] --> FIND["Look up that row's cells<br/>in the StructuredDocument"]
-    FIND --> DIMS{"All of L, H, P<br/>present & > 0?"}
-    DIMS -- "no" --> NULL["dimensions = null<br/>(flag, never guess)"]
-    DIMS -- "yes" --> MAP["Map mm:<br/>L -> l, P -> w, H -> h"]
-    NULL --> CODE
-    MAP --> CODE["Read product code"]
-    CODE --> CATEG["Match code to category<br/>(EFOR.. = appliance, TOP.. = top, ...)"]
-    CATEG --> SR["Resolve stacking rules<br/>for that category"]
-    SR --> WT{"Explicit weight<br/>in the PDF?"}
-    WT -- "yes" --> USE["use it"]
-    WT -- "no" --> EST["estimate = volume x category density"]
-    USE --> ITEM["Item"]
-    EST --> ITEM
-```
-
-Two design rules worth calling out:
-
-- **Never guess (CLAUDE.md).** If a row is missing a dimension (merged cell,
-  blank), we set `dimensions = null` rather than inventing a size. That item is
-  later reported as `unplaced` with the reason *"missing or unparseable
-  dimensions"* — visible, not silently dropped.
-- **Italian numbers.** The source PDF writes `1.234,56` (dot = thousands, comma =
-  decimal). `parseItalianNumber()` converts it to `1234.56`, carried over from
-  the reference parser.
-
-### The dimension axis mapping
-
-The PDF gives `L` (length), `H` (height), `P` (depth, *profondità*). The van's
-coordinate system is `x` = length, `y` = width, `z` = up. So:
-
-| PDF | meaning | our field | van axis |
-|-----|---------|-----------|----------|
-| L | length | `l` | x |
-| P | depth | `w` | y |
-| H | height | `h` | z |
-
----
-
-## 6. The stacking matrix (why some boxes can bear weight and some can't)
-
-`config/stackability.json` encodes the matrix from `van-calculation.md`. Each
-**category** answers three transport questions:
-
-| Category | Stackable? (can sit on others) | Can support weight on top? | Rotation locked? |
+| Category | stackable? | maxStackPressureKpa (crush limit) | orientationFixed? |
 |----------|:--:|:--:|:--:|
-| appliance (oven, fridge) | no | no (0 kg) | yes (upright) |
-| top (countertop, glass) | no | no (0 kg) | yes |
-| base-cabinet (solid box) | yes | yes (strong, 80 kg) | no |
-| wall-cabinet (lighter) | yes | yes (limited, 30 kg) | no |
-| tall-unit (column/pantry) | no | no (0 kg) | yes |
-| accessory (handles, parts) | yes | yes (20 kg) | no |
+| heavy-material | yes | 300 | no |
+| light-industrial | yes | 150 | no |
+| base-cabinet | yes | 40 | no |
+| wall-cabinet | yes | 25 | no |
+| accessory | yes | 15 | no |
+| appliance (oven/fridge) | **no** | 12 | yes |
+| tall-unit (column) | **no** | 15 | yes |
+| top (countertop/glass) | **no** | 20 | yes |
+| glass-panel | **no** | 5 | yes(rot free) |
+| *fallback (unknown)* | **no** | 8 | yes |
 
-- `canSupportWeightKg = 0` ⇒ **nothing may be stacked on it** (it is, in effect,
-  fragile-as-a-base).
-- `orientationFixed = true` ⇒ it must stay upright; the packer won't tip it on
-  its side to make it fit.
-- Each row also carries a `densityKgPerM3` — the fallback used to *estimate*
-  weight when the PDF has none. Values lean heavy on purpose, so we never
-  under-count weight and overload a van.
-
-Unknown category ⇒ the **conservative `fallback`** row (nothing stacks on it, no
-rotation). Safe by default.
+- `stackable: false` ⇒ the item may **only sit on the floor** (it is never lifted).
+- `orientationFixed: true` ⇒ shipped upright; the packer won't tip it to fit.
+- `maxStackPressureKpa` is the **crush gate** (see §7). `canSupportWeightKg` is
+  retained in config for reference but **no longer gates placement** — pressure
+  replaced raw mass so a light box on a tiny footprint can't "pass" a heavy base.
+- `densityKgPerM3` is only the weight-estimator fallback. Unknown code → the
+  conservative `fallback` row (nothing stacks on it, stays upright). Safe by default.
 
 ---
 
-## 7. The packing algorithm (the heart)
+## 6. The arranging algorithm — the heart (`heuristic-packer.ts`)
 
-`heuristic-packer.ts` implements **3D First-Fit-Decreasing** with *extreme-point*
-placement. Plain-English version:
+**3D First-Fit-Decreasing with scored extreme-point placement.** Four phases.
 
-1. **Expand quantities.** An item with `quantity: 3` becomes 3 separate boxes to
-   place. Items with `dimensions = null` go straight to `unplaced`.
-2. **Sort the boxes.** Non-fragile first, then biggest-volume first (ties broken
-   by id for determinism). Heavy, sturdy things get placed early → they land on
-   the floor. Fragile things sort last → they end up on top, where nothing can be
-   placed on them.
-3. **Place each box at the best free spot.** We keep a list of candidate corners
-   ("anchors"), starting with the van's origin corner. For each box we try anchors
-   **lowest-first, then nearest** (fill the floor before stacking), and at each
-   anchor we try the allowed rotations. The first spot that passes every check
-   wins.
-4. **After placing, spawn new anchors** at the three exposed corners of the box
-   just placed (to its right, beside it, and on top of it). These become future
-   candidate spots.
+### Phase 1 — expand to units
+`quantity: 3` → 3 boxes to place. `dimensions = null` → straight to `unplaced`.
+
+### Phase 2 — sort the units (this decides the whole layout)
+A stable comparator, in priority order:
+
+```
+non-fragile first        → fragile sinks to the end, lands on top, bears nothing
+then highest maxStackPressureKpa  → the sturdiest bases go down first
+then largest volume       → big sturdy boxes form the floor
+then id (deterministic tie-break)
+```
+
+Sturdy + heavy-bearing items land early (floor); fragile last (top). The sort is
+*why* fragility becomes safe — see §8.
+
+### Phase 3 — the placement loop
+A list of candidate corners ("**anchors**", extreme points) starts at the origin
+`{0,0,0}`. For each unit, in sorted order:
 
 ```mermaid
 flowchart TD
-    A["Next box<br/>(sorted order)"] --> WGT{"Adding it exceeds<br/>van payload?"}
-    WGT -- "yes" --> UP1["unplaced: over payload"]
-    WGT -- "no" --> FIT{"Fits the empty interior<br/>in ANY orientation?"}
-    FIT -- "no" --> UP2["unplaced: larger than interior"]
-    FIT -- "yes" --> ANCH["Try anchors low -> near"]
-    ANCH --> ROT["Try each allowed rotation"]
-    ROT --> C1{"Inside the van?"}
-    C1 -- "no" --> ANCH
-    C1 -- "yes" --> C2{"Overlaps a placed box?"}
-    C2 -- "yes" --> ANCH
-    C2 -- "no" --> C3{"On the floor (z = 0)?"}
-    C3 -- "yes" --> PLACE["Place it"]
-    C3 -- "no" --> SUP{"Resting fully on a<br/>strong, non-fragile box?"}
-    SUP -- "no" --> ANCH
-    SUP -- "yes" --> PLACE
-    ANCH -- "no spot left" --> UP3["unplaced: no space"]
-    PLACE --> SPAWN["Spawn 3 new anchors<br/>(right / beside / on top)"]
+    A["next unit"] --> WGT{"running payload + weight<br/>> van.maxPayloadKg?"}
+    WGT -- yes --> U1["unplaced: over payload"]
+    WGT -- no --> FIT{"fits interior in ANY<br/>allowed orientation?"}
+    FIT -- no --> U2["unplaced: exceeds interior"]
+    FIT -- yes --> VOL{"unit volume ><br/>free volume left?"}
+    VOL -- yes --> U3["unplaced: no space"]
+    VOL -- no --> SCAN["score every (anchor × orientation)<br/>that passes validatePlacement"]
+    SCAN --> PICK{"any valid candidate?"}
+    PICK -- no --> U3
+    PICK -- yes --> PLACE["place at best-scoring candidate"]
+    PLACE --> SPAWN["spawn anchors: right(+x), beside(+y), atop(+z)"]
     SPAWN --> A
 ```
 
-### The checks, precisely
+Two cheap gates run **before** the expensive scan: the **weight gate**
+(position-independent) and a **free-volume bound** (a unit bigger than the unused
+volume can't fit in any rotation). They turn hundreds of doomed units on a full
+van into O(1) rejects instead of full anchor scans.
 
-For a candidate position + rotation, a box is accepted only if **all** hold:
+### Phase 4 — score & pick (`tryPlace` + `scoreCandidate`)
+Unlike a plain "first fit", every valid `(anchor × orientation)` is **scored** and
+the best wins (strictly-greater, so ties resolve to the lowest/most-compact/
+lowest-rotation spot — fully deterministic):
 
-- **Weight gate (first, position-independent):** running payload + this box's
-  weight ≤ `van.maxPayloadKg`. Fail → unplaced, reason *over payload*.
-- **Fits the interior:** `position + size ≤ interior` on all three axes (with a
-  small `toleranceMm` slack). If it can't fit in *any* orientation even in an
-  empty van → unplaced, reason *larger than interior*.
-- **No overlap:** its box must not intersect any already-placed box (touching
-  faces are fine, true overlap is not).
-- **Support (only when stacked, z > 0):** it must be `stackable`, **and** it must
-  rest fully on top of **one** placed box that is (a) **not fragile** and (b)
-  rated to bear this box's weight (`canSupportWeightKg ≥ weight`). This is the
-  conservative "no partial support" rule — a box never balances on an edge.
+```
+score =  (stackable ? z · W_Z         : 0)   // build columns: reward height
+       + (z > 0     ? SUPPORT_BONUS   : 0)   // prefer stacking over a fresh floor cell
+       − (x + y)    · W_COMPACT              // hug the origin: no stranded floor gaps
+       − (stackable ? size.z · W_FLAT : 0)   // lie flat on the floor → leave headroom to stack
+```
 
-### How fragility becomes a hard rule
+with `W_Z = SUPPORT_BONUS = 1e6 ≫ W_COMPACT = W_FLAT = 1e3`, so support dominates
+height dominates compaction — ties never hinge on float noise. This scoring is
+what replaced an older "floor-first scan" that spread stackables across the floor
+and left the air empty.
+
+**Anchor cap.** The active anchor set is bounded at `MAX_ANCHORS = 128`: when it
+grows past that, keep the lowest/most-compact (the only ones the scorer ever
+prefers) and drop far corners. Bounds a pack to O(units × 128); small jobs never
+reach it, so their output is byte-for-byte unchanged.
+
+---
+
+## 7. The placement gate — "may this box sit here?" (`placement-validator.ts`)
+
+The **single source of truth**, imported by *both* the server packer and the
+Stage-4 drag UI, so auto-pack and hand-drag obey identical physics. A candidate is
+accepted only if **all** hold, in detection order (most-specific failure wins):
+
+1. **Inside the interior** — `position + size ≤ interior` on all axes (+ `toleranceM` slack).
+2. **No overlap** — strict intersection with any placed box (touching faces are fine).
+3. **Supported** (only when `z > 0`) — see below. Floor boxes (`z ≈ 0`) skip it.
+
+### The support check (`isSupported`) — and its crush model
+
+A stacked box must rest **fully on ONE** placed box whose top face meets the box's
+base (`|top − z| ≤ tol`) and that passes two gates:
+
+- **Fragility** — a fragile box may rest only on another fragile box; a standard
+  box may never sit on a fragile base. (Standard bases take anything.)
+- **Crush** — the candidate's downward pressure `P = (m·g)/(footprint area)` in
+  kPa must not exceed the base's `maxStackPressureKpa`. Pressure, not raw mass, so
+  a small dense box can't pass a wide light base it would punch through.
+
+> Vertical pressure only; horizontal forces and weight propagation down a column
+> are out of scope by design. Total mass is still bounded globally by the van payload.
+
+---
+
+## 8. Why fragility is a hard rule (two independent guarantees)
 
 ```mermaid
 flowchart LR
-    F["Fragile item"] --> S1["Sorts LAST -> placed last"]
-    S1 --> S2["Lands on top / in gaps"]
-    F --> S3["Its rule: canSupportWeightKg = 0"]
-    S3 --> S4["Support check forbids<br/>resting anything on a fragile box"]
-    S2 --> SAFE["Nothing is ever stacked<br/>on a fragile item"]
-    S4 --> SAFE
+    F["fragile item"] --> S1["sorts LAST → placed last → lands on top"]
+    F --> S2["support gate: standard may never rest on fragile"]
+    S1 --> SAFE["nothing is ever stacked on a fragile item"]
+    S2 --> SAFE
 ```
 
-Two independent mechanisms guarantee the same invariant — a fragile item is never
-load-bearing: it is placed last (so it's on top), **and** the support check
-explicitly refuses any non-fragile box from resting on it.
-
-### Utilization
-
-After packing: `utilization = (sum of placed box volumes) / (van interior
-volume)`, a number from 0 to 1. Higher = tighter packing = the van is well used.
+The sort puts fragile on top, *and* the gate refuses any standard box resting on a
+fragile base. Either alone suffices; together they make the invariant robust.
 
 ---
 
-## 8. Choosing the van (ranking)
+## 9. Choosing the van(s) — ranking & fleet allocation
 
-`packer.service.ts` doesn't trust a single van — it runs the packer against
-**every** van in the fleet and ranks the results:
+`packer.service.ts` packs the job into **every** fleet van and ranks the results;
+`fleet-allocator.ts` then finds the **cheapest set of vans that carries the whole
+job** when one van overflows.
 
 ```mermaid
 flowchart TD
-    ITEMS["Item[]"] --> A["Pack into van A"]
-    ITEMS --> B["Pack into van B"]
-    ITEMS --> C["Pack into van C"]
-    A --> R["Rank all results"]
-    B --> R
-    C --> R
-    R --> RULE["1. vans that fit EVERYTHING first<br/>2. among those, highest utilization (tightest = cheapest)<br/>3. if none fit, the one that placed the most boxes"]
-    RULE --> SEL["selected = best plan"]
-    SEL --> SIG{"Does the top van<br/>fit the whole job?"}
-    SIG -- "yes" --> OK["fitsInSingleVan = true"]
-    SIG -- "no" --> NO["fitsInSingleVan = false<br/>(needs a bigger van or multiple trips)"]
+    ITEMS["Item[]"] --> P["pack into every van"]
+    P --> R["rank: 1) fits-all first  2) tightest volume fill  3) else most units placed"]
+    R --> ALLOC["fleet-allocator: branch-and-bound over vans,<br/>memoised, greedy fallback past a node budget"]
+    ALLOC --> OUT["fleet[] + fitsInSingleVan + totalPerMileRate"]
 ```
 
-So the result is always the *best available* plan plus an honest
-`fitsInSingleVan` flag. We never just throw "doesn't fit" — we say which van got
-closest and why the rest didn't.
+Cost model: `total = distance × Σ(cost-per-mile)`; distance is constant at
+allocation time, so minimising `Σ cost-rate` over the chosen fleet minimises £.
+We never just say "doesn't fit" — we return the best plan, the van set, and an
+honest `fitsInSingleVan` flag. **Utilization** = Σ placed box volume ÷ van
+interior volume (0..1); **floor coverage** = Σ floor-resting footprint ÷ floor
+area — the gap between the two is exactly the wasted headroom.
 
 ---
 
-## 9. A worked example (the real smoke-test run)
+## 10. Where space is lost — limits & the highest-leverage improvement
 
-Input: 4 product rows from an Arredo3-style quote.
+A real symptom: a van fills to **93.5% floor but only 76.5% volume**, with payload
+at 2.56% — so the air above the floor is wasted and items spill to the next van,
+even though weight is nowhere near the limit. The cause is in the arranging logic,
+in leverage order:
 
-| Row | Code | Qty | L×H×P (mm) | Fragility | Becomes |
-|-----|------|-----|-----------|-----------|---------|
-| 1 | EFOR600 | 1 | 598×595×550 | fragile | appliance, 1 unit |
-| 2 | BASE600 | 3 | 600×720×560 | standard | base-cabinet, 3 units |
-| 3 | COL3060 | 1 | 600×2000×580 | standard | tall-unit, 1 unit |
-| 4 | TOP120 | 1 | 1200×40×(blank) | standard | top, **dimensions null** |
+**1 — Single-base support is the dominant cap.** `isSupported` requires a stacked
+box to rest on **one** base that covers its whole footprint (§7). So columns can
+never grow in footprint, and **no box can bridge two boxes**. In a mixed load
+almost nothing qualifies → the floor tiles up and the upper half stays empty.
+→ **Fix (highest leverage): bridging / union support.** Accept a box when the
+*combined coplanar top faces* of several qualifying bases cover its footprint —
+each base still passing the fragility + crush gate. This is physically real (a
+board across two cabinets) and unlocks the whole upper half. Biggest single win.
 
-Result:
+**2 — Lossy extreme points.** `nextAnchors` spawns anchors only at the 3 corners
+of each placed box, with **no projection** onto other boxes' faces or the walls.
+True extreme-point packing projects each new point, generating the real corners of
+the residual space. Without it, valid pockets get no anchor and stay empty.
+→ **Fix:** project spawned points onto existing faces + interior walls.
 
-- **packableUnits = 5** (oven 1 + base 3 + column 1; the top has no depth so it's
-  not packable).
-- **placed = 4** (oven + 3 bases) into the smallest van (Fiat Doblò), utilization
-  ≈ 0.19.
-- **unplaced:**
-  - `TOP120` → *missing or unparseable dimensions* (blank depth — flagged, not
-    guessed).
-  - `COL3060` → *larger than the van interior in every orientation* (2000 mm tall
-    exceeds every van's height, and as a tall-unit it can't be laid down).
-- **fitsInSingleVan = false** — correctly, because the 2 m column physically
-  doesn't fit any configured van.
+**3 — Single greedy pass.** Once placed, a box is frozen; gaps opened as the
+layout evolves are never reclaimed. → **Fix:** a cheap "settle" pass that pushes
+each box toward the floor/origin until blocked.
 
-This is the system being honest: it placed what it could, and told us exactly why
-the other two couldn't go — rather than silently producing a wrong quote.
-
----
-
-## 10. Why it's built this way (design notes)
-
-- **Pure & deterministic.** No clocks, no randomness, stable sorts. Same input →
-  same plan, every time. That's what makes it testable and what lets Stage 4
-  render it as a pure function.
-- **Config-driven, never hardcoded.** Column positions, the stacking matrix, the
-  van fleet, and tuning knobs (tolerance, density, fleet cap) all live in JSON /
-  `env.ts`, editable without code changes.
-- **Swap-seams.** `Packer` and `VanRepository` are interfaces. The heuristic can
-  be replaced with a smarter algorithm, and `vans.json` can be swapped for the
-  ML-1 admin database, without touching anything that calls them.
-- **Loud failure.** Bad config throws immediately with a clear message; un-fit
-  items are surfaced with reasons, never dropped.
+Do these in order — **#1 alone recovers most of the lost volume**. Each is its own
+branch with its own tests (the gate is shared with the drag UI, so changing it
+ripples into Stage 4).
 
 ---
 
-## 11. File map (for navigation)
+## 11. Why it's built this way
 
-| File | What it does |
-|------|--------------|
-| `src/lib/packing/packing.types.ts` | All Stage 3 types (`Item`, `Van`, `Placement`, `PackingResult`, `Packer`). |
-| `src/lib/packing/geometry.ts` | Volume / surface formulas (mm → m³/m²). |
-| `src/lib/packing/weight-estimator.ts` | Explicit-or-estimated weight. |
-| `src/lib/packing/stackability.ts` + `config/stackability.json` | Category → stacking rules + density. |
-| `src/lib/packing/column-map.ts` + `config/column-map.json` | Table columns + category code patterns. |
-| `src/lib/packing/item-assembler.ts` | Joins Stage 1 + Stage 2 → `Item[]`. |
-| `src/lib/packing/van.repository.ts` + `config/vans.json` | The fleet. |
-| `src/lib/packing/heuristic-packer.ts` | The packing algorithm + constraints. |
-| `src/lib/packing/packer.service.ts` | Orchestrates assembly + ranking. |
-| `src/app/api/pack/route.ts` | HTTP entry point. |
-| `src/lib/packing/__tests__/` | 26 tests proving all of the above. |
-```
+- **Pure & deterministic** — no clocks, no randomness, stable sorts. Same input →
+  same plan. Testable; Stage 4 renders it as a pure function.
+- **Config-driven** — stacking matrix, fleet, tolerance, fleet cap all in JSON /
+  `env.ts`. Behaviour changes without code changes.
+- **Swap-seams** — `Packer` and `VanRepository` are interfaces; the heuristic can
+  be replaced (e.g. by a bridging-aware packer) without touching callers.
+- **Loud failure** — bad config throws; unfit items surface with reasons, never dropped.
+
+---
+
+## 12. File map
+
+| File | Role |
+|------|------|
+| `packing.types.ts` | All Stage 3 types (`Item`, `Van`, `Placement`, `PackingResult`, `Packer`). |
+| `geometry.ts` | Volume / surface formulas (m → m²/m³). |
+| `weight-estimator.ts` | Explicit-or-estimated weight. |
+| `stackability.ts` + `config/stackability.json` | Category → stacking rules, crush limits, density. |
+| `column-map.ts` + `config/column-map.json` | Table columns + category code patterns. |
+| `item-assembler.ts` | Joins Stage 1 + Stage 2 → `Item[]`. |
+| `van.repository.ts` + `config/vans.json` | The fleet. |
+| **`heuristic-packer.ts`** | **The arranging algorithm: sort, anchor loop, scoring (§6).** |
+| **`placement-validator.ts`** | **The placement gate: bounds, overlap, support/crush (§7) — shared with Stage 4.** |
+| `packer.service.ts` | Orchestrates assembly + ranking. |
+| `fleet-allocator.ts` | Cheapest multi-van plan when one van overflows (§9). |
+| `__tests__/` | Tests pinning all of the above. |

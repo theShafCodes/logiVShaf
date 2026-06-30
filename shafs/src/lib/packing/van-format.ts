@@ -5,10 +5,6 @@
  */
 import type { Dimensions } from "@/lib/packing/packing.types";
 
-function metres(mm: number): string {
-  return (mm / 1000).toFixed(2);
-}
-
 /**
  * Human description of a van WITHOUT its commercial model name, e.g.
  * "4.32 × 1.78 × 1.94 m · up to 1600 kg". Used wherever the client-facing UI
@@ -16,5 +12,5 @@ function metres(mm: number): string {
  * lives only in the dedicated fleet-reference table.
  */
 export function describeVan(interior: Dimensions, maxPayloadKg: number): string {
-  return `${metres(interior.l)} × ${metres(interior.w)} × ${metres(interior.h)} m · up to ${maxPayloadKg} kg`;
+  return `${interior.l.toFixed(2)} × ${interior.w.toFixed(2)} × ${interior.h.toFixed(2)} m · up to ${maxPayloadKg} kg`;
 }

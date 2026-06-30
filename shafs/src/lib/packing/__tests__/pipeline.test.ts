@@ -73,9 +73,9 @@ describe("pipeline: Stage 1→3 item assembly", () => {
     expect(item0.dimensions).not.toBeNull();
     expect(item1.dimensions).not.toBeNull();
 
-    // cm→mm scaling: height 40cm → 400mm, width (l) 120cm → 1200mm
-    expect(item0.dimensions!.l).toBe(1200);
-    expect(item0.dimensions!.h).toBe(400);
+    // cm→m scaling: height 40cm → 0.4m, width (l) 120cm → 1.2m
+    expect(item0.dimensions!.l).toBe(1.2);
+    expect(item0.dimensions!.h).toBe(0.4);
     expect(item0.weightKg).toBe(85);
 
     // Category from pattern: "Polycarbonate" → glass-panel
@@ -96,8 +96,8 @@ describe("pipeline: Stage 3 heuristic packing", () => {
       matrix,
     });
 
-    const van = { id: "test", label: "Test Van", interior: { l: 6000, w: 2400, h: 2400 }, maxPayloadKg: 5000, perMileRate: 2.5 };
-    const packer = new HeuristicPacker({ toleranceMm: 5 });
+    const van = { id: "test", label: "Test Van", interior: { l: 6.0, w: 2.4, h: 2.4 }, maxPayloadKg: 5000, perMileRate: 2.5 };
+    const packer = new HeuristicPacker({ toleranceM: 0.005 });
     const result = packer.pack(items, van);
 
     expect(result.placements).toHaveLength(2);
@@ -128,8 +128,8 @@ describe("pipeline: Stage 3.5 fleet allocation", () => {
     });
 
     const vans = parseVansFrom(VANS_JSON);
-    const packer = new HeuristicPacker({ toleranceMm: 5 });
-    const plan = allocateFleet(items, vans, packer, { toleranceMm: 5 });
+    const packer = new HeuristicPacker({ toleranceM: 0.005 });
+    const plan = allocateFleet(items, vans, packer, { toleranceM: 0.005 });
 
     expect(plan.unplaced).toHaveLength(0);
     expect(plan.vans.length).toBeGreaterThanOrEqual(1);
@@ -147,7 +147,7 @@ describe("pipeline: Stage 5 pricing", () => {
     const smallVan = vans.find((v) => v.id === "small-panel") ?? vans[0]!;
 
     const quote = calculateQuote(
-      { origin: "London, UK", destination: "Birmingham, UK", distanceMiles: 120, durationSeconds: 5400 },
+      { origin: "London, UK", destination: "Birmingham, UK", distanceMiles: 120, durationSeconds: 5400, distanceMethod: "road" },
       [smallVan],
       0,
       5,
@@ -165,14 +165,14 @@ describe("pipeline: Stage 5 pricing", () => {
     const van = vans[0]!;
 
     const base = calculateQuote(
-      { origin: "A", destination: "B", distanceMiles: 100, durationSeconds: 3600 },
+      { origin: "A", destination: "B", distanceMiles: 100, durationSeconds: 3600, distanceMethod: "road" },
       [van],
       0,
       5,
       "£",
     );
     const withFragile = calculateQuote(
-      { origin: "A", destination: "B", distanceMiles: 100, durationSeconds: 3600 },
+      { origin: "A", destination: "B", distanceMiles: 100, durationSeconds: 3600, distanceMethod: "road" },
       [van],
       3,
       5,
@@ -190,7 +190,7 @@ describe("pipeline: full Stage 1→5 chain", () => {
     const columnMap = parseColumnMapFrom(COLUMN_MAP_JSON);
     const matrix = parseStackabilityFrom(STACKABILITY_JSON);
     const vans = parseVansFrom(VANS_JSON);
-    const packer = new HeuristicPacker({ toleranceMm: 5 });
+    const packer = new HeuristicPacker({ toleranceM: 0.005 });
 
     const items = assembleItems({
       doc: TWO_ITEM_DOC as never,
@@ -199,7 +199,7 @@ describe("pipeline: full Stage 1→5 chain", () => {
       matrix,
     });
 
-    const plan = allocateFleet(items, vans, packer, { toleranceMm: 5 });
+    const plan = allocateFleet(items, vans, packer, { toleranceM: 0.005 });
     expect(plan.placedUnits).toBeGreaterThan(0);
 
     const vanList = plan.vans.map((r) => ({
@@ -209,7 +209,7 @@ describe("pipeline: full Stage 1→5 chain", () => {
 
     const fragileCount = plan.vans.reduce((n, r) => n + r.placements.filter((p) => p.fragile).length, 0);
     const quote = calculateQuote(
-      { origin: "London, UK", destination: "Manchester, UK", distanceMiles: 212, durationSeconds: 14400 },
+      { origin: "London, UK", destination: "Manchester, UK", distanceMiles: 212, durationSeconds: 14400, distanceMethod: "road" },
       vanList.map((v) => v.van),
       fragileCount,
       5,

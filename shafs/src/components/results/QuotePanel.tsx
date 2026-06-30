@@ -41,6 +41,11 @@ export function QuotePanel({ quote }: { quote: Quote }) {
           <span style={routeBadge}>
             {quote.vans.length} vehicle{multi ? "s" : ""}
           </span>
+          <span style={{ fontSize: 11, color: color.muted, fontStyle: "italic" }}>
+            {(quote.route.distanceMethod ?? "road") === "road"
+              ? "road distance · Google Maps"
+              : "straight-line est. · no Maps key"}
+          </span>
         </div>
       </div>
 

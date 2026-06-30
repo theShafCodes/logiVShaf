@@ -29,13 +29,21 @@ export class QuoteHistoryStore {
     return this.cache;
   }
 
+  async clear(): Promise<void> {
+    const path = this.path();
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, "[]", "utf8");
+    this.cache = [];
+  }
+
   async append(quote: Quote): Promise<QuoteHistoryEntry> {
     const entry: QuoteHistoryEntry = {
       id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `quote_${Date.now()}`,
       createdAt: new Date().toISOString(),
       quote,
     };
-    const next = [entry, ...(await this.list())];
+    const limit = getConfig().quoteHistory.maxEntries;
+    const next = [entry, ...(await this.list())].slice(0, limit);
     const path = this.path();
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, JSON.stringify(next, null, 2), "utf8");

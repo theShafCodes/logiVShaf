@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { color, font, radius, spacing } from "@/styles/tokens";
 import { smartNum } from "@/lib/fmt";
 import { VanIcon } from "@/components/results/VanIcon";
+import { volumeM3 } from "@/lib/packing/geometry";
+import { useVanSession } from "@/lib/hooks/use-van-session";
 import type { Van } from "@/lib/packing/packing.types";
 
 /**
@@ -17,11 +19,6 @@ import type { Van } from "@/lib/packing/packing.types";
 
 const MIN_MI = 1;
 const MAX_MI = 200;
-
-/** Interior volume in m³ (config stores mm). */
-function volumeM3(v: Van): number {
-  return (v.interior.l * v.interior.w * v.interior.h) / 1e9;
-}
 
 /** Available units of a van (allocator default of 5 when unset). */
 function qtyOf(v: Van): number {
@@ -41,7 +38,7 @@ function fleetCost(fleet: Fleet, byId: Map<string, Van>, miles: number) {
     if (!v) continue;
     rate += v.perMileRate;
     fuel += v.fuelCostPerMile ?? 0;
-    volume += volumeM3(v);
+    volume += volumeM3(v.interior);
     payload += v.maxPayloadKg;
   }
   return {
@@ -62,7 +59,7 @@ function cheapestForCapacity(vans: Van[], targetVol: number, targetPayload: numb
   if (targetVol <= 0 && targetPayload <= 0) return [];
   const avail = new Map(vans.map((v) => [v.id, qtyOf(v)]));
   // Most capacity per pound first.
-  const ranked = [...vans].sort((a, b) => volumeM3(b) / b.perMileRate - volumeM3(a) / a.perMileRate);
+  const ranked = [...vans].sort((a, b) => volumeM3(b.interior) / b.perMileRate - volumeM3(a.interior) / a.perMileRate);
   const picks: Fleet = [];
   let vol = 0;
   let pay = 0;
@@ -73,40 +70,27 @@ function cheapestForCapacity(vans: Van[], targetVol: number, targetPayload: numb
     if (!pick) break;
     avail.set(pick.id, (avail.get(pick.id) ?? 0) - 1);
     picks.push(pick.id);
-    vol += volumeM3(pick);
+    vol += volumeM3(pick.interior);
     pay += pick.maxPayloadKg;
   }
   return picks;
 }
 
 export function FleetCostExplorer() {
-  const [vans, setVans] = useState<Van[]>([]);
-  const [loadError, setLoadError] = useState(false); // UX fix H9: surface fetch failure instead of stuck "Loading…"
+  const { vans, loadError, reload } = useVanSession();
   const [fleet, setFleet] = useState<Fleet>([]);
   const [miles, setMiles] = useState(50);
   // Holds the operator's own fleet while previewing the optimised one, so "Back to mine" can restore it.
   const [savedFleet, setSavedFleet] = useState<Fleet | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const loadVans = () => {
-    setLoadError(false);
-    void (async () => {
-      try {
-        const res = await fetch("/api/vans");
-        const data = await res.json();
-        setVans(data.vans ?? []);
-      } catch {
-        setLoadError(true);
-      }
-    })();
-  };
-
-  useEffect(() => loadVans(), []);
-
   const byId = useMemo(() => new Map(vans.map((v) => [v.id, v])), [vans]);
   // Smallest → largest, so the icon row reads as a size ramp.
-  const sorted = useMemo(() => [...vans].sort((a, b) => volumeM3(a) - volumeM3(b)), [vans]);
-  const maxVol = useMemo(() => Math.max(1, ...vans.map(volumeM3)), [vans]);
+  const sorted = useMemo(
+    () => [...vans].sort((a, b) => volumeM3(a.interior) - volumeM3(b.interior)),
+    [vans],
+  );
+  const maxVol = useMemo(() => Math.max(1, ...vans.map((v) => volumeM3(v.interior))), [vans]);
   // Group by size band for the catalogue. Insertion order follows `sorted` (ascending
   // volume), so bands appear smallest-first with no hardcoded ordering.
   const bands = useMemo(() => {
@@ -183,7 +167,7 @@ export function FleetCostExplorer() {
                 {groupVans.map((v) => {
                   const left = remaining(v);
                   // Icon width ramps with volume so the row reads as a true size ladder.
-                  const iconPx = Math.round(26 + 26 * (volumeM3(v) / maxVol)); // 26–52 px
+                  const iconPx = Math.round(26 + 26 * (volumeM3(v.interior) / maxVol)); // 26–52 px
                   return (
                     <button
                       key={v.id}
@@ -192,7 +176,7 @@ export function FleetCostExplorer() {
                       onDragStart={(e) => e.dataTransfer.setData("text/van-id", v.id)}
                       onClick={() => add(v)}
                       disabled={left <= 0}
-                      title={`${v.label} · ${(v.interior.l / 1000).toFixed(2)}×${(v.interior.w / 1000).toFixed(2)}×${(v.interior.h / 1000).toFixed(2)} m · ${v.maxPayloadKg} kg · £${v.perMileRate.toFixed(2)}/mi · ${left} of ${qtyOf(v)} free`}
+                      title={`${v.label} · ${v.interior.l.toFixed(2)}×${v.interior.w.toFixed(2)}×${v.interior.h.toFixed(2)} m · ${v.maxPayloadKg} kg · £${v.perMileRate.toFixed(2)}/mi · ${left} of ${qtyOf(v)} free`}
                       style={{
                         display: "flex",
                         flexDirection: "column",
@@ -223,7 +207,7 @@ export function FleetCostExplorer() {
           {loadError && (
             <span style={{ fontSize: font.xs, color: color.error }}>
               Couldn’t load the fleet.{" "}
-              <button type="button" onClick={loadVans} style={{ ...linkBtn, color: color.error, textDecoration: "underline" }}>Retry</button>
+              <button type="button" onClick={reload} style={{ ...linkBtn, color: color.error, textDecoration: "underline" }}>Retry</button>
             </span>
           )}
         </div>

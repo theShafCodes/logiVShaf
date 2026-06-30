@@ -51,6 +51,7 @@ describe("GoogleMapsProvider", () => {
       destination: "Manchester, UK",
       durationSeconds: 1800,
       distanceMiles: 20,
+      distanceMethod: "road",
     });
   });
 

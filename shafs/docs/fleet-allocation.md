@@ -10,112 +10,149 @@ Code: `src/lib/packing/fleet-allocator.ts` · cost model: `src/lib/packing/van-c
 · pricing: `src/lib/pricing/calculator.ts`.
 
 > **This doc is in two halves.**
-> **§1–§5 — how distribution works *today*** (the shipped algorithm, exactly).
-> **§6–§8 — how it *should* evolve** to distribute cargo more intelligently across a
-> fleet, with a model that scales from a two-van operator to a large carrier.
-> Read §1–§5 to understand the current behaviour; read §6–§8 for the upgrade path.
+> **§1–§6 — how distribution works *today*** (the shipped algorithm, from first principles).
+> **The second half — how it *should* evolve** to distribute cargo more intelligently
+> across a fleet, with a model that scales from a two-van operator to a large carrier.
+> Read §1–§6 to understand the current behaviour; read the second half for the upgrade path.
+
+> **Note on weight.** The fleet config currently inflates `maxPayloadKg` ~20× (see the
+> `_note` in `config/vans.json`) so weight never gates placement while stacking is being
+> tuned. This doc therefore explains allocation as it actually behaves **today: driven by
+> space and cost, not weight.** Where weight *will* matter once realistic payloads are
+> restored is flagged inline.
 
 ---
 
-## 1. The decision flow
+## 1. The question, from first principles
 
-`allocateFleet` is an **exhaustive branch-and-bound search**. The single-van
-`HeuristicPacker` answers "how much fits in one van"; the allocator answers "which
-fleet carries everything for the least money".
+A quotation is just **a pile of boxes**. We have a catalogue of vans, each a different
+size and a different price-per-mile. Two questions follow, in order:
+
+1. **Does each box fit *any* van at all?** If not, it can't travel — flag it and move on.
+2. **For the boxes that do fit, which combination of vans carries the whole pile for the
+   least money?** One big van? Two small ones? The answer is whatever is cheapest.
+
+That second question is the entire job. Everything below is just *how we search for the
+cheapest answer without missing a better one.*
 
 ```mermaid
 flowchart TD
-    A[All items from the quotation] --> B{Item has dimensions<br/>and fits some van?}
-    B -- No --> U[Mark UNPLACED<br/>missing dims / too big / too heavy]
-    B -- Yes --> P[Packable items]
+    A[All items from the quotation] --> B{Does this box fit<br/>inside some van?}
+    B -- No --> U[Set aside as UNPLACED<br/>missing dims / too big]
+    B -- Yes --> P[Boxes we can carry]
 
     P --> T1
 
-    subgraph SEARCH [Try every mix-and-match combination]
+    subgraph SEARCH [Find the cheapest set of vans]
         direction TB
-        T1[Take remaining items] --> T2[For EACH available van:<br/>pack it as densely as possible]
-        T2 --> T3[Record what is left over]
+        T1[Take the boxes still unloaded] --> T2[For EACH van:<br/>fill it as full as it will go]
+        T2 --> T3[Note what didn't fit]
         T3 --> T4{Anything left over?}
         T4 -- Yes --> T1
-        T4 -- No --> T5[One complete fleet = a chain of vans]
+        T4 -- No --> T5[A complete fleet =<br/>a chain of vans that holds everything]
     end
 
-    T5 --> C[Cost each complete fleet:<br/>sum of every van's per-mile rate]
-    C --> D{Compare fleets}
-    D --> E[Keep the CHEAPEST]
+    T5 --> C[Add up each fleet's per-mile rates]
+    C --> E[Keep the CHEAPEST fleet]
 
-    E --> TIE{Two fleets within<br/>a few pence?}
-    TIE -- Yes --> TB[Tie-break:<br/>1- fewer vans<br/>2- fuller emptiest van]
-    TIE -- No --> OUT[Chosen fleet + item placement]
+    E --> TIE{Two fleets cost<br/>the same?}
+    TIE -- Yes --> TB[Tie-break:<br/>1. fewer vans<br/>2. no van left nearly empty]
+    TIE -- No --> OUT[Chosen fleet + where each box goes]
     TB --> OUT
-
-    OUT --> PR[Price it:<br/>distance x return factor x rates<br/>+ fuel + fragility surcharge]
-
-    U --> OUT
 ```
 
-In words, at each step it:
-1. tries every still-available van, packing **all remaining cargo** into it (each van
-   filled as densely as the packer allows);
-2. recurses on whatever that van couldn't take (`result.unplaced`);
-3. keeps the cheapest total, memoised on the remaining-cargo signature + van
-   availability.
+`allocateFleet` runs this as an **exhaustive search**: it genuinely tries every
+mix-and-match of vans, not a quick guess. At each step it:
+
+1. takes every van still available and **fills it as densely as the packer allows** with
+   the boxes that remain;
+2. recurses on whatever didn't fit (`result.unplaced`) — that becomes the next van's job;
+3. costs each *complete* fleet and keeps the cheapest, remembering answers it has already
+   computed (memoised on remaining-cargo + van availability) so it never re-solves the
+   same sub-pile twice.
 
 > **Large jobs** cap the exhaustive search at ~1,500 combinations, then a fast greedy
-> completion (pick the most volume-per-£ van each step) finishes the rest, so it always
+> finish (pick the most volume-per-£ van each step) completes the rest, so it always
 > terminates.
 
 ---
 
-## 2. What "cost" means for one van
+## 2. Why a box goes in *this* van and not *that* one
 
-Each van's cost is its **per-mile rate**. The whole job is `distance × Σ(rates)`, and
-since distance is the same for every van, the search just minimises the **sum of rates**.
+There is **no rule that says "fragile goes here" or "heavy goes there."** A box lands in
+a particular van purely as a side-effect of one goal: *carry everything for the least
+total money.* The only hard gate is **geometry** — a box must physically fit the van's
+interior in some rotation (the 3D packer checks all 6 orientations unless the item is
+orientation-locked).
+
+So the decision for each van is really just:
 
 ```mermaid
 flowchart LR
-    R1[perMileRate<br/>base hire/driver] --> SUM[Van per-mile rate]
-    R2[fuelCostPerMile] --> F[× 1 + 0.15 × load-by-weight]
-    F --> SUM
-    SUM --> J[Job cost = distance × return factor × Σ rates]
+    R1[perMileRate<br/>base hire + driver] --> SUM[Van's cost per mile]
+    R2[fuelCostPerMile] --> SUM
+    SUM --> J[Whole job = distance × return factor × sum of every van's rate]
 ```
 
-So **weight matters** in two ways: a heavier load raises the fuel part of the rate, and
-a van is refused outright once its payload limit is exceeded (its items spill into the
-next van). The cheapest fleet balances *volume that fits* against *weight carried*.
+Because **distance is the same for every van on the trip**, it drops out of the
+comparison — the search only ever has to minimise the **sum of the vans' per-mile
+rates**. A cheap small van pulls cargo toward itself; an expensive large van only earns
+its place when it removes the need for *two* smaller ones.
+
+> **When weight is restored:** `fuelCostPerMile` will scale up with how heavily a van is
+> loaded (≈15% more fuel at full payload), and a van will be refused once its real
+> `maxPayloadKg` is exceeded — pushing the overflow into the next van. Today, with
+> inflated payloads, neither effect bites, so allocation is space-and-rate only.
 
 ---
 
-## 3. The variables the decision weighs
+## 3. The factors the decision weighs today
 
-| Variable | Role |
+| Factor | Role in the current model |
 |---|---|
-| `perMileRate` | Primary cost — the quantity minimised |
-| `fuelCostPerMile` × load | Heavier load → higher rate |
-| van interior L×W×H | Hard limit — gates what physically fits (3D packer) |
-| van `maxPayloadKg` | Hard limit — refuse once cumulative weight exceeds it |
+| van interior L×W×H | **Hard limit** — gates what physically fits (the 3D packer) |
+| `perMileRate` | **The number minimised** — sum across the chosen vans |
+| `fuelCostPerMile` | Added to the rate (flat today; payload-scaled once weights are real) |
 | van `quantity` | How many of each model are available to draw on |
-| `ROUTE_RETURN_FACTOR` | Multiplies billed distance (1 = one-way, 2 = round trip) |
-| tie-breakers | fewer vans, then fuller vans — only on a cost tie (`betterAllocation()`) |
+| `ROUTE_RETURN_FACTOR` | Multiplies billed distance (1 = one-way, 2 = round trip) — §5 |
+| tie-breakers | fewer vans, then fuller vans — **only** on a cost tie (`betterAllocation()`) |
+| ~~`maxPayloadKg`~~ | *Inert today* (inflated ~20×); will become a hard weight gate later |
 
 ---
 
 ## 4. Why "Medium ¾ full + Small 100% full" happens
 
-It is **emergent, not a rule**. Across every combination tried, that pairing carried
-all items at the lowest summed rate: a small van has a low rate, so filling it
-completely and topping up with the minimum extra capacity (a partly-full medium) beats
-running two larger, half-empty vans. The algorithm never "aims" to fill the small van
-first — cheapest-overall just lands there.
-
-> **Data caveat:** `config/vans.json` payloads are currently inflated ~20× (see the note
-> in that file), so weight rarely gates anything yet and distribution is driven mostly
-> by volume. Restore realistic payloads before the weight side of "cheapest" can be
-> trusted.
+It is **emergent, not a rule**. Across every combination tried, that pairing carried all
+the boxes at the lowest summed rate: a small van is cheap per mile, so filling it
+completely and topping up with the *minimum* extra capacity (a part-full medium) beats
+running two larger, half-empty vans. Nothing "aims" to fill the small van first —
+cheapest-overall simply lands there.
 
 ---
 
-## 5. Return journey
+## 5. What a real dispatcher weighs that this model doesn't (yet)
+
+The model above is honest about being **purely cost-and-fit**. A human planning the same
+load considers a wider set of forces, and these are exactly the levers that decide
+"product A in van 1, product B in van 2" in the real world:
+
+| Real-world factor | Why it changes the allocation | Status here |
+|---|---|---|
+| **Fragility / stackability** | Glass can't sit under an engine block; some boxes can't bear weight, so they need their own floor space even if volume is free | Stacking matrix exists (`config/stackability.json`); not yet a cost driver |
+| **Door aperture** | A box can fit the *interior* but not through the *doors* — it must go in a van it can actually be loaded into | `doorAperture` is in config, not yet enforced in allocation |
+| **Drop sequence** | Multi-stop runs load last-in-first-out: the first delivery rides near the doors, which constrains which van each drop's items go in | Not modelled — single origin→destination assumed |
+| **Weight & axle limits** | Real payload and weight distribution decide if a heavy item splits off into its own vehicle | Inert today (payloads inflated); planned |
+| **Value / security** | High-value or hazardous goods may be deliberately *not* consolidated, or kept in a specific vehicle | Not modelled |
+| **Driver hours / depot** | A van already near the route, or a driver with hours left, is cheaper in reality than rate alone implies | Not modelled — flat per-mile rate only |
+| **Return loads** | A van that can pick up cargo on the way back is effectively cheaper for this leg | Not modelled — see `ROUTE_RETURN_FACTOR`, §5 |
+
+The shipped algorithm deliberately reduces all of this to **fit + rate** so the answer is
+deterministic and explainable. The second half of this doc describes how to layer these
+real forces back in without losing that property.
+
+---
+
+## 6. Return journey
 
 Pricing is per-van full-route: every vehicle is billed for the same origin→destination
 distance. A single config knob covers the drive home:
@@ -132,121 +169,210 @@ Because the factor multiplies **every** van's cost equally, it does **not** chan
 fleet chosen in §1 — the relative ordering of combinations is preserved.
 
 ---
-
 # How it *should* work — a smarter distribution model
 
-§1–§5 describe what ships today. It is correct and deterministic, but its cost model is
-deliberately thin, and that thinness shows up as three real-world blind spots. This half
-states each blind spot precisely, then gives the upgraded decision flow that fixes them.
+Everything in §1–§6 answers *"which set of vans is cheapest per mile."* That is the wrong
+objective for the real decision, and it is **why the model can't reason about how to split
+a load.** This half sets out the objective it *should* optimise, and the real-world forces
+that objective has to carry.
 
-## 6. Where the current logic is too simple
+> **The one-sentence upgrade.** Stop minimising the **summed per-mile rate** of the chosen
+> vans and start minimising the **total quoted cost of the whole job** — distance + payload-
+> scaled fuel + per-van driver labour and handling + any licence-class driver premium —
+> subject to fit, door aperture, *real* weight and axle limits, stackability, and drop
+> sequence. Once the cost function is complete, the cargo split stops being an accident of
+> packing order and becomes the variable the optimiser actually tunes.
 
-| # | Blind spot in §1–§5 | Why it matters | Evidence in code |
+---
+
+## 7. The real question is *assignment*, not packing
+
+Your instinct is right: once the cargo fits, the open question isn't "does it fit" — it's
+**"why does product A ride in van 1 and product B in van 2, and why not move more into one
+and less into the other?"** That is an *assignment* problem (which item goes to which
+vehicle), and today the system never actually solves it. The split you see is a **by-product**
+of one mechanical habit: the packer fills each van densest-first to the brim, then overflows
+whatever is left into the next van. Nobody decided the split; it fell out of the packing order.
+
+Two facts make that by-product wrong, and both are the reason a smarter model *would*
+rebalance:
+
+1. **The cost of a van is not linear in how much you load it.** Fuel already rises ~15% from
+   empty to full payload (`computeVanCostRate`), and — once realistic weights return — the
+   *licence class* of the vehicle is a **step** in cost (§9). A curve that bends means there
+   is a genuine optimum split, and it is almost never "cram the first van to the ceiling."
+2. **Each extra van carries a fixed cost the allocator can't see.** One more van = one more
+   driver wage for the full journey + base hire that **does not scale with distance**, plus
+   two site-level overheads that compound with vehicle count: (a) **dock queuing** — most
+   depots and customer sites have one receiving bay, so van 2 waits behind van 1 (a paid
+   driver sits idle); and (b) **per-vehicle admin** — a proof of delivery (POD) is legally
+   vehicle-specific, so every extra van triggers its own sign-off, consignment check, and
+   goods-received record at the destination. The physical lifting is the *same total work*
+   regardless of how many vans split it; the queuing and paperwork are not. The §1 search
+   minimises per-mile rate, so this fixed lump is invisible to it — which is how it can pick
+   a 2-van fleet that is genuinely *dearer all-in* than one van.
+
+**A worked example of the rebalance the model misses.** Van&nbsp;1 is the cheap small van;
+van&nbsp;2 is a dearer large one running half-empty. The packer crams van&nbsp;1 full — and
+its last few items are heavy, pushing it to its weight cap (fuel at the +15% ceiling, and
+once weights are real, possibly over a licence line into a costlier driver). Moving two heavy
+boxes from van&nbsp;1 into the light van&nbsp;2 leaves van&nbsp;1 **less full by volume but
+cheaper**, and barely changes van&nbsp;2. Total cost drops. Today's allocator cannot find that
+move, because it scores on per-mile rate alone — where "van&nbsp;1, full" already looks
+optimal and the weight-driven fuel, licence, and labour deltas simply don't exist.
+
+| | Today's habit | The smarter split |
+|---|---|---|
+| **Drives the decision** | densest-first packing order | total job cost |
+| **Sees fixed per-van cost?** | no | yes — won't add a van that costs more than it saves |
+| **Sees the load→cost curve?** | per-mile rate only | fuel + weight + licence step |
+| **Rebalances between vans?** | never (emergent) | yes, whenever it lowers the total |
+
+---
+
+## 8. The factors a smarter allocator must weigh
+
+The two you flagged, plus the forces from §5 that specifically decide *the split*:
+
+| Factor | Why it belongs in the allocation decision | Status in code |
+|---|---|---|
+| **Van entry size (door aperture)** | A box can fit a van's *interior* in some rotation yet be impossible to get **through the doors** — so door size is a second, independent geometric gate. It can *pin* a bulky item to a van with a big enough aperture regardless of which van is cheapest, reshaping the split. | `doorAperture` in `config/vans.json`; **not enforced** in allocation yet |
+| **Payload → cost for that vehicle** | Heavier load means (a) more fuel — already modelled as +15% empty→full in `computeVanCostRate`, so *how you spread weight* changes total fuel; and (b) once real weights return, a **hard cap** that refuses an over-loaded van and forces overflow elsewhere. Because fuel climbs with load, the cheapest split is *not* "fill one van to the cap" — past a point, an extra kg is cheaper in a lighter van. | Fuel curve live but **inert** (`maxPayloadKg` inflated ~20×); hard cap planned |
+| **Driver licence class** (§9) | Vehicle weight sets the licence a driver must hold. Bigger vehicle ⇒ higher class ⇒ **fewer drivers legally able to drive it and higher pay**. This turns "use one big truck instead of two vans" from a smooth rate swap into a *step-change* in cost and availability. | **Not modelled** — fleet has no licence/driver-pool data; pricing uses one flat `hourlyRate` for every van |
+| **Fixed cost of adding a van** | Each van adds a driver's full-journey wage + base hire, independent of distance. Site-level overheads compound this: dock queuing (van 2 waits for one bay — paid idle time) and per-vehicle POD admin (legally separate sign-off per vehicle at the destination). The physical lifting is the same total work regardless of van count. The §1 search never sees any of this, so it under-prices extra vans. **The single biggest correctness gap.** | Labour line exists in `calculateQuote` but is applied **after** allocation; the search is blind to it |
+| **Weight balance / axle limits** | Even within the legal *total* payload, you can't pile all the heavy items in one van — per-axle limits and stability constrain it (an overloaded axle is illegal even at legal GVW). The split must spread weight, not just volume. | Not modelled — flat weight only |
+| **Drop sequence (multi-stop)** | Last-in-first-out loading: the first delivery must ride near the doors, which constrains which van each drop's items can go in — re-deciding the split on any multi-stop route. | Single origin→destination assumed |
+| **Stackability / fragility** | Fragile or non-load-bearing items need their own floor space even when volume is free, so they consume "expensive" capacity and can force an extra van. | Matrix in `config/stackability.json`; not yet a cost driver |
+| **Usable-volume buffer** | A van packed to 99% geometrically is undeliverable in practice (loaders need slack and awkward gaps waste space). Allocating to ~85–90% usable volume yields a split that survives the real loading bay. | Not modelled |
+| **Vehicle speed class / delivery window** (§10) | UK law caps heavier goods vehicles at *lower* speeds than vans, and >3.5t vehicles carry a 56 mph limiter — so the same miles take *more drive-hours* in a big truck. That feeds back into both driver cost (priced per hour) and whether a promised delivery time is even achievable. | **Not modelled** — drive time derived from distance only, with no per-class speed |
+
+---
+
+## 9. Driver licence class — the step-change the model ignores
+
+> *Your question: do bigger vans need different licences, so do we need to check which
+> drivers are available — and are all drivers paid the same?*
+
+**Short answer: no on both counts, and it matters a lot.** A van driver and a box-truck
+driver are not interchangeable and are not paid the same. UK law ties the licence to the
+vehicle's **maximum weight (MAM/GVW)**, and our fleet deliberately spans several of those
+bands:
+
+| Real vehicle class (GVW) | UK licence | In *our* fleet (`config/vans.json`) | Driver pool & pay vs a van driver |
 |---|---|---|---|
-| **A** | **No fixed cost per van.** Job cost is `distance × Σ(per-mile rates)`. Two small vans whose rates sum to one big van's rate cost the *same* — so consolidation is only a **tie-break**, never a real saving. | A real second van means a second driver, a second vehicle off the yard, a second insurance/depot slot. Dispatching fewer vans should *cost less*, not just win ties. | `van-cost.ts` returns only `perMileRate + fuel`; `betterAllocation()` puts van-count **after** cost. |
-| **B** | **Fill is judged by volume only.** The greedy step ranks vans by `m³ ÷ rate`; weight enters only as a hard refuse-when-over-payload gate. | A dense, heavy load saturates **weight** long before volume. Optimising volume-per-£ then mis-distributes: one van rides at 100% volume but 30% weight while another is the reverse. | `greedyComplete` uses `Σ volume ÷ rate` as `eff`; weight only caps via `fitsAnyVan`. |
-| **C** | **One flat return factor for the whole job.** `ROUTE_RETURN_FACTOR` multiplies *every* van's billed miles equally. | A multi-drop route, or a van that deadheads back while another stays out, can't be priced — every vehicle is assumed to drive the identical round trip. | `calculateQuote`: `billedMiles = distanceMiles × returnFactor`, one scalar. |
+| ≤ **3,500 kg** (4,250 kg electric) | **Category B** — ordinary car licence | every panel & Luton van (`micro-panel` … `luton-tail-lift`) | Largest pool; **~£11–15/hr** |
+| **3,500–7,500 kg** | **Category C1** | `box-truck-7-5t` (7.5t) | Smaller pool; **~£13–17/hr** + Driver CPC, tachograph, O-licence |
+| **> 7,500 kg** rigid ("Class 2") | **Category C** | `box-truck-12t`, `box-truck-18t` | Much smaller pool; **~£16–20/hr** |
+| Artic / drawbar over 750 kg trailer ("Class 1") | **Category C+E** | none today | Scarcest; **~£18–24/hr** |
 
-**The through-line:** today the algorithm minimises *rate per mile*. It should minimise
-**true job cost = fixed dispatch cost + loaded-mile cost + return cost**, with
-distribution balanced on the **binding constraint** (volume *or* weight, whichever
-saturates first).
+So the moment the allocator reaches for a 7.5t+ box truck to "consolidate into one vehicle,"
+it has quietly crossed into a **higher driver class** — which means:
 
-## 7. The upgraded decision flow
+- **Availability isn't guaranteed.** Only a fraction of drivers hold C1/C. A plan that needs
+  a 12t truck is worthless if no qualified driver is rostered. The fleet config models how
+  many *vehicles* exist (`quantity`) but **nothing about how many qualified drivers do** —
+  the constraint that actually limits the bigger vans.
+- **The driver costs materially more.** Van→Class 2 is roughly **+30–50%/hr**; van→Class 1
+  about **+60–80%**. Pricing uses a **single flat `hourlyRate` for every van**, so it cannot
+  represent this. The fix is a per-licence-class rate keyed off each van's class, not one
+  global number.
+- **Anything over 3.5 t drags in extra compliance** the small vans never trigger: **Driver
+  CPC** (35 hours' training every 5 years), **tachograph / drivers' hours** (GB domestic
+  threshold is **> 3.5 t** — 9 h daily driving, 56 h weekly, 45-min break every 4.5 h), an
+  **operator ("O") licence**, higher insurance, and clean-air/Direct-Vision charges. Each is
+  real money and real constraint that a flat per-mile rate hides.
 
-```mermaid
-flowchart TD
-    A[All items from the quotation] --> B{Has dimensions<br/>and fits some van?}
-    B -- No --> U[UNPLACED<br/>missing dims / too big / too heavy]
-    B -- Yes --> P[Packable items]
+**Net:** "one big truck vs two small vans" is never a like-for-like cost swap. The big truck
+can be cheaper per mile yet need a scarcer, dearer, more-regulated driver — exactly the kind
+of trade-off the smarter objective in §7 is built to weigh, and the current one can't.
 
-    P --> BC{Binding constraint?<br/>compare total volume vs total weight<br/>against fleet capacity}
-    BC -- Volume-bound --> V[Rank fits by m³ density]
-    BC -- Weight-bound --> W[Rank fits by kg density]
-    V --> SEARCH
-    W --> SEARCH
+> **Sources (UK, current):** licence bands & thresholds —
+> [GOV.UK driving licence categories](https://www.gov.uk/driving-licence-categories);
+> [Driver CPC](https://www.gov.uk/driver-cpc-training);
+> [operator licensing](https://www.gov.uk/guidance/goods-vehicle-operator-licensing-guide).
+> Pay ranges are 2024–25 industry estimates (relative step-up, not precise figures); 7.5t
+> pay is interpolated — no official source prices it separately.
 
-    subgraph SEARCH [Cost every mix-and-match fleet]
-        direction TB
-        T1[Take remaining items] --> T2[For EACH available van:<br/>pack as densely as the<br/>binding constraint allows]
-        T2 --> T3[Leftovers recurse]
-        T3 --> T4{Anything left?}
-        T4 -- Yes --> T1
-        T4 -- No --> T5[One complete fleet]
-    end
+---
 
-    T5 --> COST[True job cost =<br/>Σ fixed dispatch cost per van<br/>+ distance × Σ loaded-mile rate<br/>+ Σ per-van return cost]
-    COST --> CMP{Compare fleets}
-    CMP --> PICK[Keep the cheapest TRUE cost]
+## 10. Speed, drive-time, and the delivery window
 
-    PICK --> BAL{Cost-equal alternatives?}
-    BAL -- Yes --> SPREAD[Balance the load:<br/>1- fewer vans<br/>2- even fill across vans<br/>   axle safety + handling]
-    BAL -- No --> OUT[Chosen fleet + placement]
-    SPREAD --> OUT
+> *Your question: does time of departure / faster departure, and UK road-speed rules for
+> faster vs slower items, belong in the allocation?*
 
-    U --> OUT
-    OUT --> PR[Price it per van, per leg]
+**Two different things are hiding in that question — separate them.**
+
+**(a) Vehicle speed is real and tied to the same weight bands as the licence (§9).** UK law
+sets *lower* legal speeds for heavier goods vehicles, and anything over 3.5t must run a
+**56 mph (90 km/h) limiter**. So a big truck does the same miles in *more hours* than a van —
+which matters because driver labour is priced *per hour* (§11), and because a quoted delivery
+window may simply not be hittable in the slower vehicle.
+
+| Vehicle (England & Wales) | Single c'way | Dual c'way | Motorway |
+|---|---|---|---|
+| Car / car-derived van ≤ 2 t | 60 | 70 | 70 |
+| Goods vehicle ≤ 7.5 t | 50 | 60 | 70 |
+| Goods vehicle > 7.5 t | 50 | 60 | **60** (+ 56 mph limiter) |
+
+So "consolidate into one 18-tonner" is not only a dearer, scarcer driver (§9) — it is also a
+**slower** one. On a motorway-heavy 200-mile run the truck can lose the better part of an hour
+versus a van, adding driver-hours to the very vehicle that was meant to save money. This is the
+hours side of the §11 objective: `driveHours` should be derived from **per-class road speed**,
+not one flat speed for every vehicle.
+
+> **Sources (UK, current):** [GOV.UK speed limits](https://www.gov.uk/speed-limits) (goods-
+> vehicle bands); speed-limiter requirement for vehicles > 3.5 t —
+> [GOV.UK speed limiters](https://www.gov.uk/speed-limiters). Scotland sets lower non-motorway
+> limits again for > 7.5 t (40/50), which a route through Scotland would need to honour.
+
+**(b) Time *of departure* and delivery urgency is a service tier, not a fleet-allocation input.**
+Whether a job leaves at 6am or noon, and whether the customer paid for "next-day" vs "economy,"
+changes **scheduling and price tier** — it does not change *which vans carry which boxes* for a
+given run. It belongs in a scheduling/SLA layer above this allocator, and feeds in only
+indirectly: a tight window can *rule out* the slow big truck from (a), or force a second van to
+hit the time, which is then exactly the fixed-cost trade-off §7 already weighs. **Recommendation:
+model speed-by-class (a) now — it changes cost; treat departure/urgency (b) as a separate
+scheduling concern, out of scope for this document.**
+
+---
+
+## 11. The smarter objective, stated precisely
+
+Choose the fleet **and the split** that minimise:
+
+```
+total = Σ_vans [ billedMiles × (perMileRate + fuel(payloadₖ))      ← per-mile, scales with weight
+               + driverWage(licenceClassₖ) × (driveHoursₖ + handlingHours) ]  ← fixed per van; driveHoursₖ from per-class road speed (§10)
+       + surcharges
 ```
 
-What changed versus §1, point by point:
+subject to the hard constraints: every item **fits an interior** *and* **passes the door
+aperture**; no van exceeds its **real `maxPayloadKg` or axle limits**; **stack/fragility**
+rules hold; **drop sequence** is loadable; and **a qualified driver exists** for each van's
+licence class.
 
-1. **Binding-constraint first (fixes B).** Before searching, compare the job's total
-   volume and total weight against fleet capacity and decide which one *saturates first*.
-   Rank candidate vans by density on **that** axis (`m³` or `kg`), so heavy jobs stop
-   being packed as if they were bulky-but-light.
-2. **True cost, not rate (fixes A).** Add a `fixedDispatchCost` per van model in
-   `config/vans.json` (driver day-rate share + vehicle/depot slot). The minimised
-   quantity becomes `Σ fixedDispatchCost + distance × Σ loadedRate + Σ returnCost`.
-   Now one van genuinely beats two when the extra vehicle's fixed cost outweighs the
-   mileage saved — consolidation falls out of the *cost*, not a tie-break.
-3. **Per-van return (fixes C).** Replace the single scalar with a return cost computed
-   per vehicle/leg, so a van that drops and deadheads, or a multi-stop route, prices
-   correctly. The flat `ROUTE_RETURN_FACTOR` stays as the default when no per-van route
-   data exists.
-4. **Balance as the tie-break, not just count.** When fleets are cost-equal, prefer
-   fewer vans, then the **evenest fill** — avoids one van at 100% next to one at 10%,
-   which is an axle-loading and handling risk, not just an aesthetic one.
+Two properties to preserve from today's model while doing this:
 
-## 8. Why this scales for small *and* large operators
+- **Determinism & explainability** — the answer must still be a single, reproducible fleet
+  with a stated reason per van, not a black box. Branch-and-bound with the richer cost
+  function keeps this; only the score per node changes.
+- **Config, not constants** — every new knob (driver pay per licence class, axle limits,
+  usable-volume buffer, qualified-driver counts) lives in `config/`, read once, tuned
+  without code change — consistent with the rest of the pipeline.
 
-The `fixedDispatchCost` knob is what makes one model serve both ends — it is **not** a
-new algorithm per company size, just a different value in the same cost function:
+**Migration path (smallest correct steps first):**
 
-```mermaid
-flowchart LR
-    SMALL[Small operator<br/>2-4 vans] --> SF[High fixedDispatchCost<br/>relative to mileage]
-    SF --> SR[⇒ Strongly consolidate:<br/>fill one van before opening another]
+1. **Cost the whole quote inside allocation.** Feed the per-van fixed labour + handling into
+   the §1 search score so it stops under-pricing extra vans. *Fixes the biggest gap with no
+   new data.*
+2. **Restore real `maxPayloadKg`** and add per-axle limits → weight starts gating and
+   balancing the split.
+3. **Add a driver-class rate table** plus **per-class road speed** (§10), and later
+   qualified-driver counts → bigger vehicles carry their true labour cost, slower drive-time,
+   and availability constraint.
+4. **Enforce `doorAperture`**, then layer stackability/fragility and drop sequence as
+   constraints on the split.
 
-    BIG[Large carrier<br/>many vans + drivers] --> BF[Low fixedDispatchCost<br/>marginal extra van is cheap]
-    BF --> BR[⇒ Spread for balance + speed:<br/>more, evener loads acceptable]
-```
+Each step is independently shippable and each makes the split a *decision* rather than a
+side-effect — which is the whole point of this half of the document.
 
-- **Small operator** (every extra van is a scarce, expensive resource): set a **high**
-  `fixedDispatchCost`. The cost function then refuses to open a second van unless the
-  first genuinely can't take the load — the "fill the small van to 100%, top up with a
-  ¾ medium" behaviour becomes a *deliberate cost outcome*, not an accident of the rates.
-- **Large carrier** (vans and drivers are plentiful, throughput and safe axle loading
-  matter more): set a **low** `fixedDispatchCost`. Consolidation pressure relaxes, and
-  the balance tie-break spreads cargo into evener, faster-to-load vehicles.
-
-One cost function, one config knob — the same engine quotes a man-with-a-van and a
-national fleet correctly.
-
-> **Prerequisite data fix (still open):** §4's caveat applies here too. `config/vans.json`
-> payloads are inflated ~20×, so the binding-constraint logic in §7 can't distinguish
-> heavy from bulky until realistic `maxPayloadKg` values are restored. That data fix is
-> the first step before any of §6–§8 is worth building.
-
-## Implementation sketch (when this is picked up)
-
-- `config/vans.json` — add `fixedDispatchCost` per van model; restore realistic
-  `maxPayloadKg`.
-- `van-cost.ts` — new `computeFleetCost(vans, distance, returnPlan)` =
-  `Σ fixedDispatchCost + distance × Σ loadedRate + Σ returnCost`; keep
-  `computeVanCostRate` for the loaded-mile term.
-- `fleet-allocator.ts` — pick binding constraint up front; minimise `computeFleetCost`
-  instead of `Σ rate`; extend `betterAllocation()` tie-break to evenest-fill.
-- `pricing/calculator.ts` — accept a per-van/per-leg return plan; the flat
-  `ROUTE_RETURN_FACTOR` remains the fallback.
-
-None of this is built yet — §1–§5 remain the shipped behaviour.

@@ -1,24 +1,19 @@
 /**
- * Pure geometry helpers carried over verbatim from the reference parser
- * (logi-v1-main/quotation-extractor/lib/parse-quotation.ts:35,41). Dimensions are
- * millimetres; outputs are m² / m³.
+ * Pure geometry helpers. All linear inputs are metres; outputs are m² / m³.
  */
 import type { Dimensions, Vec3 } from "@/lib/packing/packing.types";
 
-const MM2_PER_M2 = 1_000_000;
-const MM3_PER_M3 = 1_000_000_000;
-
-/** surface_m2 = (L × H) / 1_000_000 — the visible face used for utilisation reporting. */
+/** surface_m2 = l × h */
 export function surfaceM2(l: number, h: number): number {
-  return (l * h) / MM2_PER_M2;
+  return l * h;
 }
 
-/** volume_m3 = (L × W × H) / 1_000_000_000. */
+/** volume_m3 = l × w × h */
 export function volumeM3(d: Dimensions): number {
-  return (d.l * d.w * d.h) / MM3_PER_M3;
+  return d.l * d.w * d.h;
 }
 
 /** volume_m3 for a Vec3 (x/y/z) — used for placement and interior volumes. */
 export function volumeM3Vec3(v: Vec3): number {
-  return (v.x * v.y * v.z) / MM3_PER_M3;
+  return v.x * v.y * v.z;
 }

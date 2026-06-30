@@ -1,13 +1,25 @@
 {
-  "version": 2,
-  "_note": "Column map for the Titan/Apex industrial & retail quotation tables: | Item # | Item Description | Material | Height (cm) | Width (cm) | Weight (kg) |. Dimensions are in CENTIMETRES (unitScale: 10 → mm). The table has only two spatial dimensions; 'dimensionP' (depth) is omitted, so the assembler derives it from mass ÷ (category density × face area). No product-code or quantity column: 'code' points at the description (so categoryPatterns match item text) and quantity defaults to 1 per row. categoryPatterns are tested in order against the description; first match wins, else defaultCategory. Fragility is handled separately in Stage 2. For the legacy Arredo3 format (explicit L/H/P in mm, code column) set unitScale:1 and map all three dimension columns.",
-  "unitScale": 10,
+  "version": 3,
+  "_note": "Header-driven column map. Columns are located by matching each table's header row against 'headerPatterns' (first match wins), so ONE config handles differing layouts — e.g. the 6-column cm sheet (| Item # | Item Description | Material | Height (cm) | Width (cm) | Weight (kg) |) and the 11-column metres sheet (| # | Item Description | Category | Material | Height (m) | Width (m) | Depth (m) | Unit Weight (kg) | Quantity | Line Volume | Line Weight |). The fixed 'columns' indices are a fallback for required fields when no header matches and for tables with no usable headers. Length unit is auto-detected per table from the dimension headers ('(cm)' / '(m)'); 'inputUnit' is the fallback. 'decimalSeparator' is '.' (English/US: dot decimal) — integers parse identically, so it is safe for the cm sheet too; set to ',' for Italian/European sources. 'code' points at the description so categoryPatterns match item text. Depth/quantity are optional: when the sheet has no such column they are absent (depth derived from mass÷density, quantity defaults to 1). Fragility is handled separately in Stage 2.",
+  "inputUnit": "m",
+  "decimalSeparator": ".",
+  "headerPatterns": {
+    "code": "description",
+    "description": "description",
+    "dimensionH": "height|^\\s*h\\b",
+    "dimensionL": "width|^\\s*w\\b",
+    "dimensionP": "depth|^\\s*d\\b",
+    "weight": "weight|\\bwt\\b",
+    "quantity": "quantity|\\bqty\\b"
+  },
   "columns": {
     "code": 1,
     "description": 1,
-    "dimensionH": 3,
-    "dimensionL": 4,
-    "weight": 5
+    "dimensionH": 4,
+    "dimensionL": 5,
+    "dimensionP": 6,
+    "weight": 7,
+    "quantity": 8
   },
   "defaultCategory": "heavy-material",
   "categoryPatterns": [

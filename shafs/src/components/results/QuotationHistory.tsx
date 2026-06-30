@@ -22,6 +22,12 @@ export function QuotationHistory() {
       .finally(() => setLoading(false));
   }, []);
 
+  function clearHistory() {
+    fetch("/api/history", { method: "DELETE" })
+      .then(() => setEntries([]))
+      .catch(() => {});
+  }
+
   if (!loading && entries.length === 0) return null;
 
   return (
@@ -34,26 +40,46 @@ export function QuotationHistory() {
         overflow: "hidden",
       }}
     >
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setOpen((o) => !o); }}
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: `${spacing.md}px ${spacing.lg}px`,
-          background: "transparent",
-          border: "none",
           cursor: "pointer",
           gap: spacing.sm,
+          userSelect: "none",
         }}
       >
         <span style={{ fontSize: font.sm, fontWeight: 600, color: color.text }}>
           Quote History {loading ? "" : `(${entries.length})`}
         </span>
-        <span style={{ fontSize: font.xs, color: color.muted }}>{open ? "▲" : "▼"}</span>
-      </button>
+        <div style={{ display: "flex", alignItems: "center", gap: spacing.md }}>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); clearHistory(); }}
+              style={{
+                fontSize: font.xs,
+                color: color.muted,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                textDecoration: "underline",
+              }}
+            >
+              Clear history
+            </button>
+          )}
+          <span style={{ fontSize: font.xs, color: color.muted }}>{open ? "▲" : "▼"}</span>
+        </div>
+      </div>
 
       {open && (
         <div
@@ -85,9 +111,12 @@ export function QuotationHistory() {
                   {new Date(entry.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: spacing.md }}>
+              <div style={{ display: "flex", gap: spacing.md, flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ fontSize: font.xs, color: color.muted }}>
                   {Math.round(entry.quote.route.distanceMiles)} mi
+                </span>
+                <span style={{ fontSize: 10, color: color.muted, fontStyle: "italic" }}>
+                  {(entry.quote.route.distanceMethod ?? "road") === "road" ? "road" : "straight-line est."}
                 </span>
                 <span style={{ fontSize: font.xs, color: color.muted }}>
                   {entry.quote.vans.length} van{entry.quote.vans.length !== 1 ? "s" : ""}

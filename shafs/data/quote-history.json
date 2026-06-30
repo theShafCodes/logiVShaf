@@ -1,183 +1,1779 @@
 [
   {
-    "id": "361b4d5f-cb97-4a81-b000-b4bae16cfd8e",
-    "createdAt": "2026-06-29T16:37:04.558Z",
+    "id": "45b07e4b-6b94-4c9f-baf8-16095f13e410",
+    "createdAt": "2026-06-30T21:45:46.761Z",
     "quote": {
       "route": {
-        "origin": "B3 2NH, Birmingham, West Midlands, England, United Kingdom",
-        "destination": "L12 1LF, Liverpool, Liverpool City Region, England, United Kingdom",
-        "distanceMiles": 96.01054839735941,
-        "durationSeconds": 6417
-      },
-      "vans": [
-        {
-          "id": "luton-dropwell",
-          "label": "Luton Dropwell Van",
-          "description": "2.85 × 1.80 × 2.05 m · up to 19000 kg",
-          "perMileRate": 1.45,
-          "distanceCost": 139.21529517617114
-        }
-      ],
-      "lineItems": [
-        {
-          "label": "Distance (96.0 mi @ £1.45/mi)",
-          "amount": 139.21529517617114
-        },
-        {
-          "label": "Fuel (96.0 mi @ £0.316/mi)",
-          "amount": 30.365976220745846
-        },
-        {
-          "label": "Fragility surcharge (10 items × £5.00)",
-          "amount": 50
-        }
-      ],
-      "subtotal": 169.58127139691697,
-      "surcharges": 50,
-      "total": 219.58127139691697
-    }
-  },
-  {
-    "id": "88752bd1-f261-4bee-8232-ff20b85d747a",
-    "createdAt": "2026-06-29T16:17:55.271Z",
-    "quote": {
-      "route": {
-        "origin": "City of London, Greater London, England, United Kingdom",
-        "destination": "Manchester, Greater Manchester, England, United Kingdom",
-        "distanceMiles": 200.09892229380418,
-        "durationSeconds": 14841
-      },
-      "vans": [
-        {
-          "id": "medium-panel",
-          "label": "Medium Wheelbase Van",
-          "description": "2.51 × 1.64 × 1.40 m · up to 1250 kg",
-          "perMileRate": 1.28,
-          "distanceCost": 256.12662053606937
-        },
-        {
-          "id": "ducato-l2h2",
-          "label": "Large Panel Van",
-          "description": "3.12 × 1.87 × 1.93 m · up to 1400 kg",
-          "perMileRate": 1.6,
-          "distanceCost": 320.1582756700867
-        }
-      ],
-      "lineItems": [
-        {
-          "label": "Van 1 — distance (200.1 mi @ £1.28/mi)",
-          "amount": 256.12662053606937
-        },
-        {
-          "label": "Van 2 — distance (200.1 mi @ £1.60/mi)",
-          "amount": 320.1582756700867
-        },
-        {
-          "label": "Van 1 — fuel (200.1 mi @ £0.310/mi)",
-          "amount": 62.1307153722262
-        },
-        {
-          "label": "Van 2 — fuel (200.1 mi @ £0.376/mi)",
-          "amount": 75.336172285105
-        },
-        {
-          "label": "Fragility surcharge (10 items × £5.00)",
-          "amount": 50
-        }
-      ],
-      "subtotal": 713.7517838634873,
-      "surcharges": 50,
-      "total": 763.7517838634873
-    }
-  },
-  {
-    "id": "e3f9112f-4034-4819-b269-99e611d039d9",
-    "createdAt": "2026-06-29T15:56:02.055Z",
-    "quote": {
-      "route": {
-        "origin": "City of London, Greater London, England, United Kingdom",
-        "destination": "Birmingham, West Midlands, England, United Kingdom",
-        "distanceMiles": 117.83621152469577,
-        "durationSeconds": 9321
+        "origin": "Greater London, England, United Kingdom",
+        "destination": "B28 8LB, Birmingham, West Midlands, England, United Kingdom",
+        "distanceMiles": 115.03258470532093,
+        "durationSeconds": 8485,
+        "distanceMethod": "road"
       },
       "vans": [
         {
           "id": "box-truck-12t",
           "label": "12t Box Truck",
-          "description": "6.80 × 2.45 × 2.45 m · up to 5000 kg",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
           "perMileRate": 3.65,
-          "distanceCost": 430.10217206513954
-        }
-      ],
-      "lineItems": [
-        {
-          "label": "Distance (117.8 mi @ £3.65/mi)",
-          "amount": 430.10217206513954
+          "distanceCost": 839.7378683488428
         },
         {
-          "label": "Fuel (117.8 mi @ £0.800/mi)",
-          "amount": 94.26673033173763
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
         },
         {
-          "label": "Fragility surcharge (6 items × £5.00)",
-          "amount": 30
-        }
-      ],
-      "subtotal": 524.3689023968772,
-      "surcharges": 30,
-      "total": 554.3689023968772
-    }
-  },
-  {
-    "id": "3953141e-ef25-4c42-ba9b-cb9f73ef98c6",
-    "createdAt": "2026-06-28T19:47:55.968Z",
-    "quote": {
-      "route": {
-        "origin": "London, UK",
-        "destination": "Manchester, UK",
-        "distanceMiles": 213.30306012884753,
-        "durationSeconds": 14576
-      },
-      "vans": [
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-18t",
+          "label": "18t Box Truck",
+          "description": "7.20 × 2.48 × 2.50 m · up to 180000 kg",
+          "perMileRate": 4.2,
+          "distanceCost": 966.2737115246958
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-7-5t",
+          "label": "7.5t Box Truck",
+          "description": "6.00 × 2.40 × 2.40 m · up to 56000 kg",
+          "perMileRate": 3.1,
+          "distanceCost": 713.2020251729898
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-12t",
+          "label": "12t Box Truck",
+          "description": "6.80 × 2.45 × 2.45 m · up to 100000 kg",
+          "perMileRate": 3.65,
+          "distanceCost": 839.7378683488428
+        },
+        {
+          "id": "box-truck-18t",
+          "label": "18t Box Truck",
+          "description": "7.20 × 2.48 × 2.50 m · up to 180000 kg",
+          "perMileRate": 4.2,
+          "distanceCost": 966.2737115246958
+        },
+        {
+          "id": "luton-dropwell",
+          "label": "Luton Dropwell Van",
+          "description": "2.85 × 1.80 × 2.05 m · up to 19000 kg",
+          "perMileRate": 1.45,
+          "distanceCost": 333.5944956454307
+        },
         {
           "id": "city-compact",
           "label": "City Compact Van",
-          "description": "1.75 × 1.50 × 1.21 m · up to 650 kg",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
           "perMileRate": 0.9,
-          "distanceCost": 191.97275411596277
+          "distanceCost": 207.05865246957768
         },
         {
-          "id": "sprinter-l3h2",
-          "label": "Long Wheelbase High Roof Van",
-          "description": "4.32 × 1.78 × 1.94 m · up to 1600 kg",
-          "perMileRate": 1.95,
-          "distanceCost": 415.9409672512527
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
         },
         {
-          "id": "luton-tail-lift",
-          "label": "Luton Box Van",
-          "description": "4.00 × 2.00 × 2.20 m · up to 1000 kg",
-          "perMileRate": 2.4,
-          "distanceCost": 511.92734430923406
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "city-compact",
+          "label": "City Compact Van",
+          "description": "1.75 × 1.50 × 1.21 m · up to 13000 kg",
+          "perMileRate": 0.9,
+          "distanceCost": 207.05865246957768
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
+        },
+        {
+          "id": "small-panel",
+          "label": "Small Panel Van",
+          "description": "2.05 × 1.58 × 1.23 m · up to 15600 kg",
+          "perMileRate": 0.98,
+          "distanceCost": 225.46386602242902
         }
       ],
       "lineItems": [
         {
-          "label": "Van 1 — distance (213.3 mi @ £0.90/mi)",
-          "amount": 191.97275411596277
+          "label": "Van 1 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
         },
         {
-          "label": "Van 2 — distance (213.3 mi @ £1.95/mi)",
-          "amount": 415.9409672512527
+          "label": "Van 2 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
         },
         {
-          "label": "Van 3 — distance (213.3 mi @ £2.40/mi)",
-          "amount": 511.92734430923406
+          "label": "Van 3 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 4 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 5 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 6 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 7 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 8 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 9 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 10 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 11 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 12 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 13 — distance (115.0 mi × 2 round trip @ £4.20/mi)",
+          "amount": 966.2737115246958
+        },
+        {
+          "label": "Van 14 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 15 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 16 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 17 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 18 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 19 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 20 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 21 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 22 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 23 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 24 — distance (115.0 mi × 2 round trip @ £3.10/mi)",
+          "amount": 713.2020251729898
+        },
+        {
+          "label": "Van 25 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 26 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 27 — distance (115.0 mi × 2 round trip @ £3.65/mi)",
+          "amount": 839.7378683488428
+        },
+        {
+          "label": "Van 28 — distance (115.0 mi × 2 round trip @ £4.20/mi)",
+          "amount": 966.2737115246958
+        },
+        {
+          "label": "Van 29 — distance (115.0 mi × 2 round trip @ £1.45/mi)",
+          "amount": 333.5944956454307
+        },
+        {
+          "label": "Van 30 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 31 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 32 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 33 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 34 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 35 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 36 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 37 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 38 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 39 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 40 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 41 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 42 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 43 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 44 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 45 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 46 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 47 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 48 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 49 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 50 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 51 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 52 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 53 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 54 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 55 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 56 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 57 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 58 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 59 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 60 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 61 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 62 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 63 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 64 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 65 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 66 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 67 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 68 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 69 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 70 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 71 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 72 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 73 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 74 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 75 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 76 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 77 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 78 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 79 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 80 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 81 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 82 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 83 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 84 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 85 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 86 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 87 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 88 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 89 — distance (115.0 mi × 2 round trip @ £0.90/mi)",
+          "amount": 207.05865246957768
+        },
+        {
+          "label": "Van 90 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 91 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 92 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 93 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 94 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 95 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 96 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 97 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 98 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 99 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 100 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 101 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 102 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 103 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 104 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 105 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 106 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 107 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 108 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 109 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 110 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 111 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 112 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 113 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 114 — distance (115.0 mi × 2 round trip @ £0.98/mi)",
+          "amount": 225.46386602242902
+        },
+        {
+          "label": "Van 1 — fuel (115.0 mi × 2 round trip @ £0.703/mi)",
+          "amount": 161.6897076553403
+        },
+        {
+          "label": "Van 2 — fuel (115.0 mi × 2 round trip @ £0.554/mi)",
+          "amount": 127.37129833999025
+        },
+        {
+          "label": "Van 3 — fuel (115.0 mi × 2 round trip @ £0.705/mi)",
+          "amount": 162.25243647672096
+        },
+        {
+          "label": "Van 4 — fuel (115.0 mi × 2 round trip @ £0.555/mi)",
+          "amount": 127.6830408555559
+        },
+        {
+          "label": "Van 5 — fuel (115.0 mi × 2 round trip @ £0.704/mi)",
+          "amount": 162.0156994173974
+        },
+        {
+          "label": "Van 6 — fuel (115.0 mi × 2 round trip @ £0.703/mi)",
+          "amount": 161.66343225743967
+        },
+        {
+          "label": "Van 7 — fuel (115.0 mi × 2 round trip @ £0.553/mi)",
+          "amount": 127.23462607194853
+        },
+        {
+          "label": "Van 8 — fuel (115.0 mi × 2 round trip @ £0.704/mi)",
+          "amount": 162.07492233317672
+        },
+        {
+          "label": "Van 9 — fuel (115.0 mi × 2 round trip @ £0.556/mi)",
+          "amount": 128.02366065818921
+        },
+        {
+          "label": "Van 10 — fuel (115.0 mi × 2 round trip @ £0.555/mi)",
+          "amount": 127.58313967758426
+        },
+        {
+          "label": "Van 11 — fuel (115.0 mi × 2 round trip @ £0.706/mi)",
+          "amount": 162.49898362990078
+        },
+        {
+          "label": "Van 12 — fuel (115.0 mi × 2 round trip @ £0.552/mi)",
+          "amount": 127.09061246543402
+        },
+        {
+          "label": "Van 13 — fuel (115.0 mi × 2 round trip @ £0.923/mi)",
+          "amount": 212.3999155358034
+        },
+        {
+          "label": "Van 14 — fuel (115.0 mi × 2 round trip @ £0.554/mi)",
+          "amount": 127.56646406110858
+        },
+        {
+          "label": "Van 15 — fuel (115.0 mi × 2 round trip @ £0.708/mi)",
+          "amount": 162.91703470413907
+        },
+        {
+          "label": "Van 16 — fuel (115.0 mi × 2 round trip @ £0.554/mi)",
+          "amount": 127.42751414788974
+        },
+        {
+          "label": "Van 17 — fuel (115.0 mi × 2 round trip @ £0.702/mi)",
+          "amount": 161.5054416742368
+        },
+        {
+          "label": "Van 18 — fuel (115.0 mi × 2 round trip @ £0.703/mi)",
+          "amount": 161.64203654178223
+        },
+        {
+          "label": "Van 19 — fuel (115.0 mi × 2 round trip @ £0.552/mi)",
+          "amount": 127.05838310830656
+        },
+        {
+          "label": "Van 20 — fuel (115.0 mi × 2 round trip @ £0.553/mi)",
+          "amount": 127.19907175958477
+        },
+        {
+          "label": "Van 21 — fuel (115.0 mi × 2 round trip @ £0.552/mi)",
+          "amount": 126.99731713634674
+        },
+        {
+          "label": "Van 22 — fuel (115.0 mi × 2 round trip @ £0.552/mi)",
+          "amount": 127.09770977049502
+        },
+        {
+          "label": "Van 23 — fuel (115.0 mi × 2 round trip @ £0.553/mi)",
+          "amount": 127.23442948947789
+        },
+        {
+          "label": "Van 24 — fuel (115.0 mi × 2 round trip @ £0.553/mi)",
+          "amount": 127.23785612530249
+        },
+        {
+          "label": "Van 25 — fuel (115.0 mi × 2 round trip @ £0.703/mi)",
+          "amount": 161.64984886473994
+        },
+        {
+          "label": "Van 26 — fuel (115.0 mi × 2 round trip @ £0.702/mi)",
+          "amount": 161.51820373428177
+        },
+        {
+          "label": "Van 27 — fuel (115.0 mi × 2 round trip @ £0.702/mi)",
+          "amount": 161.49111908214775
+        },
+        {
+          "label": "Van 28 — fuel (115.0 mi × 2 round trip @ £0.921/mi)",
+          "amount": 211.91018202143854
+        },
+        {
+          "label": "Van 29 — fuel (115.0 mi × 2 round trip @ £0.311/mi)",
+          "amount": 71.47825183977217
+        },
+        {
+          "label": "Van 30 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 31 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 32 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 33 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 34 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 35 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 36 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 37 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 38 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 39 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 40 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 41 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 42 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 43 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 44 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 45 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 46 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 47 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 48 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 49 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 50 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 51 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 52 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 53 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 54 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 55 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 56 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 57 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 58 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 59 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 60 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 61 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 62 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 63 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 64 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 65 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 66 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 67 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 68 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 69 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 70 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 71 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 72 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 73 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 74 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 75 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 76 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 77 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 78 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 79 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 80 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 81 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 82 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 83 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 84 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 85 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 86 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 87 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 88 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 89 — fuel (115.0 mi × 2 round trip @ £0.210/mi)",
+          "amount": 48.33208194112727
+        },
+        {
+          "label": "Van 90 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 91 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 92 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 93 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 94 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 95 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 96 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 97 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 98 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 99 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 100 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 101 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 102 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 103 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 104 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 105 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 106 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 107 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 108 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 109 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 110 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 111 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 112 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 113 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.93177929748443
+        },
+        {
+          "label": "Van 114 — fuel (115.0 mi × 2 round trip @ £0.230/mi)",
+          "amount": 52.91946638659078
+        },
+        {
+          "label": "Driver labour (114 drivers × 5.5h @ £15.00/hr)",
+          "amount": 9343.25
+        },
+        {
+          "label": "Fragility surcharge (13471 items × £5.00)",
+          "amount": 67355
         }
       ],
-      "subtotal": 1119.8410656764495,
-      "surcharges": 0,
-      "total": 1119.8410656764495
+      "subtotal": 58175.909915467644,
+      "surcharges": 67355,
+      "total": 125530.90991546764
+    }
+  },
+  {
+    "id": "acae6dfb-038a-4f12-9e41-51a6843f959b",
+    "createdAt": "2026-06-30T18:36:43.425Z",
+    "quote": {
+      "route": {
+        "origin": "Manchester, UK",
+        "destination": "London, UK",
+        "distanceMiles": 208.9037520878072,
+        "durationSeconds": 14544,
+        "distanceMethod": "road"
+      },
+      "vans": [
+        {
+          "id": "box-truck-18t",
+          "label": "18t Box Truck",
+          "description": "7.20 × 2.48 × 2.50 m · up to 180000 kg",
+          "perMileRate": 4.2,
+          "distanceCost": 1754.7915175375804
+        }
+      ],
+      "lineItems": [
+        {
+          "label": "Distance (208.9 mi × 2 round trip @ £4.20/mi)",
+          "amount": 1754.7915175375804
+        },
+        {
+          "label": "Driver labour (1 driver × 8.8h @ £15.00/hr)",
+          "amount": 132.45
+        },
+        {
+          "label": "Fragility surcharge (5 items × £5.00)",
+          "amount": 25
+        }
+      ],
+      "subtotal": 1887.2415175375804,
+      "surcharges": 25,
+      "total": 1912.2415175375804
     }
   }
 ]

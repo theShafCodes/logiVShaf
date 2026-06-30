@@ -3,8 +3,8 @@ import { allocateFleet } from "@/lib/packing/fleet-allocator";
 import { HeuristicPacker } from "@/lib/packing/heuristic-packer";
 import { makeItem, makeVan, makeLargeCargo, totalQuantity } from "./fixtures";
 
-const packer = new HeuristicPacker({ toleranceMm: 5 });
-const opts = { toleranceMm: 5 };
+const packer = new HeuristicPacker({ toleranceM: 0.005 });
+const opts = { toleranceM: 0.005 };
 
 describe("allocateFleet", () => {
   it("uses a single van when everything fits", () => {
@@ -20,7 +20,7 @@ describe("allocateFleet", () => {
 
   it("spreads overflow across multiple vans until everything is carried", () => {
     // A tiny van that holds exactly one box; three boxes ⇒ three vans.
-    const vans = [makeVan({ id: "tiny", interior: { l: 700, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 1 })];
+    const vans = [makeVan({ id: "tiny", interior: { l: 0.7, w: 0.7, h: 0.8 }, maxPayloadKg: 1000, perMileRate: 1 })];
     const items = [makeItem({ id: "a" }), makeItem({ id: "b" }), makeItem({ id: "c" })];
     const plan = allocateFleet(items, vans, packer, opts);
 
@@ -33,8 +33,8 @@ describe("allocateFleet", () => {
   it("chooses the cheapest van combination, not the fewest vans", () => {
     // Two boxes. One expensive van holds both (rate 3); a cheap van holds one
     // (rate 1). Cheapest = two cheap vans (2) beats one expensive van (3).
-    const cheap = makeVan({ id: "cheap", interior: { l: 700, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 1 });
-    const big = makeVan({ id: "big", interior: { l: 1300, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 3 });
+    const cheap = makeVan({ id: "cheap", interior: { l: 0.7, w: 0.7, h: 0.8 }, maxPayloadKg: 1000, perMileRate: 1 });
+    const big = makeVan({ id: "big", interior: { l: 1.3, w: 0.7, h: 0.8 }, maxPayloadKg: 1000, perMileRate: 3 });
     const items = [makeItem({ id: "a" }), makeItem({ id: "b" })];
 
     const plan = allocateFleet(items, [cheap, big], packer, opts);
@@ -58,8 +58,8 @@ describe("allocateFleet", () => {
   it("prefers fewer vans when two fleets cost the same", () => {
     // One box per cheap van (rate 1); a big van holds both (rate 2, no fuel ⇒ exact).
     // Two cheap vans = 2 and one big van = 2: a tie. Tie-break ⇒ the single big van.
-    const cheap = makeVan({ id: "cheap", interior: { l: 700, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 1 });
-    const big = makeVan({ id: "big", interior: { l: 1300, w: 700, h: 800 }, maxPayloadKg: 1000, perMileRate: 2 });
+    const cheap = makeVan({ id: "cheap", interior: { l: 0.7, w: 0.7, h: 0.8 }, maxPayloadKg: 1000, perMileRate: 1 });
+    const big = makeVan({ id: "big", interior: { l: 1.3, w: 0.7, h: 0.8 }, maxPayloadKg: 1000, perMileRate: 2 });
     const items = [makeItem({ id: "a" }), makeItem({ id: "b" })];
 
     const plan = allocateFleet(items, [cheap, big], packer, opts);
@@ -74,9 +74,9 @@ describe("allocateFleet", () => {
     // Generous availability so van capacity never binds — lets us prove every
     // packable unit is actually placed, not merely accounted for.
     const vans = [
-      makeVan({ id: "s", interior: { l: 2050, w: 1580, h: 1230 }, maxPayloadKg: 15600, perMileRate: 0.98, quantity: 20 }),
-      makeVan({ id: "m", interior: { l: 2512, w: 1636, h: 1397 }, maxPayloadKg: 25000, perMileRate: 1.28, quantity: 20 }),
-      makeVan({ id: "l", interior: { l: 3705, w: 1870, h: 1932 }, maxPayloadKg: 30000, perMileRate: 1.8, quantity: 20 }),
+      makeVan({ id: "s", interior: { l: 2.05, w: 1.58, h: 1.23 }, maxPayloadKg: 15600, perMileRate: 0.98, quantity: 20 }),
+      makeVan({ id: "m", interior: { l: 2.512, w: 1.636, h: 1.397 }, maxPayloadKg: 25000, perMileRate: 1.28, quantity: 20 }),
+      makeVan({ id: "l", interior: { l: 3.705, w: 1.87, h: 1.932 }, maxPayloadKg: 30000, perMileRate: 1.8, quantity: 20 }),
     ];
 
     const start = Date.now();
@@ -97,11 +97,11 @@ describe("allocateFleet", () => {
 
     // Generous bound — asserts it terminates (exact search + greedy fallback), not perf.
     expect(elapsedMs).toBeLessThan(30_000);
-  });
+  }, 30_000);
 
   it("flags items larger than every van as unplaced", () => {
-    const items = [makeItem({ id: "huge", dimensions: { l: 9000, w: 5000, h: 5000 } })];
-    const vans = [makeVan({ id: "v", interior: { l: 3000, w: 1800, h: 1900 }, perMileRate: 1 })];
+    const items = [makeItem({ id: "huge", dimensions: { l: 9.0, w: 5.0, h: 5.0 } })];
+    const vans = [makeVan({ id: "v", interior: { l: 3.0, w: 1.8, h: 1.9 }, perMileRate: 1 })];
     const plan = allocateFleet(items, vans, packer, opts);
 
     expect(plan.vans).toHaveLength(0);

@@ -7,7 +7,7 @@ let nextId = 0;
 
 export function makeItem(overrides: Partial<Item> = {}): Item {
   const dimensions: Dimensions | null =
-    overrides.dimensions !== undefined ? overrides.dimensions : { l: 600, w: 600, h: 700 };
+    overrides.dimensions !== undefined ? overrides.dimensions : { l: 0.6, w: 0.6, h: 0.7 };
   return {
     id: overrides.id ?? `item-${nextId++}`,
     name: overrides.name ?? "test item",
@@ -27,10 +27,13 @@ export function makeVan(overrides: Partial<Van> = {}): Van {
   return {
     id: overrides.id ?? "test-van",
     label: overrides.label ?? "Test Van",
-    interior: overrides.interior ?? { l: 3000, w: 1800, h: 1900 },
+    interior: overrides.interior ?? { l: 3.0, w: 1.8, h: 1.9 },
     maxPayloadKg: overrides.maxPayloadKg ?? 1500,
     doorAperture: overrides.doorAperture,
     perMileRate: overrides.perMileRate ?? 1.5,
+    fuelCostPerMile: overrides.fuelCostPerMile,
+    quantity: overrides.quantity,
+    sizeClass: overrides.sizeClass,
   };
 }
 
@@ -49,12 +52,12 @@ export function makeLargeCargo(count = 200): Item[] {
     }
     if (i % 73 === 0) {
       // Oversized — fits no van.
-      items.push(makeItem({ id: `huge-${i}`, dimensions: { l: 9000, w: 5000, h: 5000 } }));
+      items.push(makeItem({ id: `huge-${i}`, dimensions: { l: 9.0, w: 5.0, h: 5.0 } }));
       continue;
     }
-    const l = 300 + (i % 7) * 80;
-    const w = 300 + (i % 5) * 70;
-    const h = 300 + (i % 4) * 90;
+    const l = 0.3 + (i % 7) * 0.08;
+    const w = 0.3 + (i % 5) * 0.07;
+    const h = 0.3 + (i % 4) * 0.09;
     items.push(
       makeItem({
         id: `box-${i}`,

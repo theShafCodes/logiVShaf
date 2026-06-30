@@ -10,7 +10,7 @@
  * reason rather than fabricating a size.
  */
 import { createLogger } from "@/lib/logger/logger";
-import { categoryForCode, type ColumnMap } from "@/lib/packing/column-map";
+import { categoryForCode, detectUnitFromHeader, resolveColumnIndices, toMetres, type ColumnMap, type LengthUnit } from "@/lib/packing/column-map";
 import { resolveStackRules, type StackabilityMatrix } from "@/lib/packing/stackability";
 import { estimateWeightKg } from "@/lib/packing/weight-estimator";
 import type { Dimensions, Item } from "@/lib/packing/packing.types";
@@ -20,24 +20,36 @@ import type { StructuredDocument, TableRow } from "@/lib/conversion/types";
 const logger = createLogger("packing.assembler");
 
 /**
- * Italian number → float. "1.234,56" → 1234.56 (dot = thousands, comma = decimal).
- * Ported from logi-v1-main parse-quotation. Returns null for blank/non-numeric.
+ * Parse a numeric cell under a declared decimal convention. Returns null for
+ * blank/non-numeric input.
+ *  - ","  Italian/European: dot = thousands, comma = decimal  ("1.234,56" → 1234.56)
+ *  - "."  English/US:       comma = thousands, dot = decimal  ("1,234.56" → 1234.56)
+ * The convention must be declared (not guessed): "1.200" is 1200 under "," but 1.2
+ * under "." — auto-detection would silently corrupt one format or the other.
  */
-export function parseItalianNumber(raw: string | undefined): number | null {
+export function parseNumeric(raw: string | undefined, decimalSeparator: "." | "," = ","): number | null {
   if (raw === undefined) return null;
   const trimmed = raw.trim();
   if (trimmed === "") return null;
-  const normalized = trimmed.replace(/\./g, "").replace(",", ".");
+  const normalized =
+    decimalSeparator === ","
+      ? trimmed.replace(/\./g, "").replace(",", ".")
+      : trimmed.replace(/,/g, "");
   const n = Number.parseFloat(normalized);
   return Number.isFinite(n) ? n : null;
+}
+
+/** Italian convention (dot = thousands, comma = decimal). Thin back-compat wrapper. */
+export function parseItalianNumber(raw: string | undefined): number | null {
+  return parseNumeric(raw, ",");
 }
 
 function cell(row: TableRow, index: number): string | undefined {
   return index >= 0 && index < row.length ? row[index] : undefined;
 }
 
-/** Floor for a derived depth — avoids zero-thickness boxes (mm). */
-const MIN_DERIVED_DEPTH_MM = 20;
+/** Floor for a derived depth — avoids zero-thickness boxes (m). 0.02 m = 20 mm. */
+const MIN_DERIVED_DEPTH_M = 0.02;
 
 /**
  * Derive the missing depth axis from physics when the source table carries only
@@ -47,18 +59,34 @@ const MIN_DERIVED_DEPTH_MM = 20;
  * plausible bounding box (never below MIN, never deeper than the largest known
  * axis) when ρ under/over-estimates. Returns null when mass is unavailable, in
  * which case the item is flagged unplaced rather than guessed.
+ * All inputs and the return value are in metres.
  */
-function deriveDepthMm(
+function deriveDepthM(
   weightKg: number | null,
   densityKgPerM3: number,
-  lengthMm: number,
-  heightMm: number,
+  lengthM: number,
+  heightM: number,
 ): number | null {
   if (weightKg === null || weightKg <= 0 || densityKgPerM3 <= 0) return null;
-  const faceAreaM2 = (lengthMm / 1000) * (heightMm / 1000);
+  const faceAreaM2 = lengthM * heightM;
   if (faceAreaM2 <= 0) return null;
-  const depthMm = (weightKg / densityKgPerM3 / faceAreaM2) * 1000;
-  return Math.min(Math.max(depthMm, MIN_DERIVED_DEPTH_MM), Math.max(lengthMm, heightMm));
+  const depthM = weightKg / densityKgPerM3 / faceAreaM2;
+  return Math.min(Math.max(depthM, MIN_DERIVED_DEPTH_M), Math.max(lengthM, heightM));
+}
+
+/**
+ * Detect the length unit from the dimension column headers, falling back to the
+ * declared config unit. Checks L, H, and P columns in that order.
+ */
+function resolveUnit(headers: string[], cols: ColumnMap["columns"], fallback: LengthUnit): LengthUnit {
+  const dimCols: number[] = [cols.dimensionL, cols.dimensionH];
+  if (cols.dimensionP !== undefined) dimCols.push(cols.dimensionP);
+  for (const i of dimCols) {
+    const h = i >= 0 && i < headers.length ? (headers[i] ?? "") : "";
+    const detected = detectUnitFromHeader(h);
+    if (detected !== null) return detected;
+  }
+  return fallback;
 }
 
 /** Locate the table a ClassifiedItem points at, or null if coordinates are stale. */
@@ -67,8 +95,13 @@ function tableFor(doc: StructuredDocument, ci: ClassifiedItem) {
   return page?.tables.find((t) => t.index === ci.tableIndex) ?? null;
 }
 
-/** Header text that identifies a dimension column (cm/mm units, dim words, or L/H/P). */
-const DIMENSION_HEADER = /(height|width|depth|length|dimension|\bcm\b|\bmm\b|prof|alt|lungh|^\s*[lhp]\s*$)/i;
+/**
+ * Header text that identifies a dimension column. Matches dimension words
+ * (height/width/depth/length), Italian equivalents (prof/alt/lungh), an explicit
+ * unit marker (cm/mm/`(m)`), or a leading single dimension letter — `L`/`W`/`H`/`D`/`P`
+ * either bare or followed by a unit, e.g. `"H (m)"`.
+ */
+const DIMENSION_HEADER = /(height|width|depth|length|dimension|\bcm\b|\bmm\b|\(m\)|prof|alt|lungh|^\s*[lwhdp]\b)/i;
 
 /**
  * A table is a packable cargo manifest only if its configured dimension columns
@@ -93,7 +126,8 @@ export function assembleItems(input: AssembleInput): Item[] {
   const { doc, classification, columnMap, matrix } = input;
   const items: Item[] = [];
 
-  const cols = columnMap.columns;
+  const sep = columnMap.decimalSeparator;
+  const num = (raw: string | undefined) => parseNumeric(raw, sep);
 
   for (const ci of classification.items) {
     const table = tableFor(doc, ci);
@@ -107,11 +141,15 @@ export function assembleItems(input: AssembleInput): Item[] {
       continue;
     }
 
+    // Locate columns by header text per table (falls back to fixed indices), so
+    // one config maps differing layouts — a 6-col cm sheet and an 11-col m sheet.
+    const cols = resolveColumnIndices(table.headers, columnMap);
+
     // Skip rows from non-cargo tables (no dimension columns) — e.g. a summary
     // table that repeats the items with only Category/Classification columns.
     if (!isDimensionedTable(table.headers, cols)) continue;
 
-    const scale = columnMap.unitScale;
+    const unit = resolveUnit(table.headers, cols, columnMap.inputUnit);
     const code = (cell(row, cols.code) ?? "").trim();
     const name = (cell(row, cols.description) ?? ci.label).trim();
 
@@ -119,28 +157,28 @@ export function assembleItems(input: AssembleInput): Item[] {
     const rules = resolveStackRules(matrix, category);
 
     const explicitWeightKg =
-      cols.weight !== undefined ? parseItalianNumber(cell(row, cols.weight)) : null;
+      cols.weight !== undefined ? num(cell(row, cols.weight)) : null;
 
-    // Parse the raw dimensions, scale to mm. Depth may be absent (2-D source).
-    const lRaw = parseItalianNumber(cell(row, cols.dimensionL));
-    const hRaw = parseItalianNumber(cell(row, cols.dimensionH));
+    // Parse the raw dimensions, convert to metres immediately. Depth may be absent (2-D source).
+    const lRaw = num(cell(row, cols.dimensionL));
+    const hRaw = num(cell(row, cols.dimensionH));
     const pRaw =
-      cols.dimensionP !== undefined ? parseItalianNumber(cell(row, cols.dimensionP)) : null;
+      cols.dimensionP !== undefined ? num(cell(row, cols.dimensionP)) : null;
 
-    const l = lRaw !== null && lRaw > 0 ? lRaw * scale : null;
-    const h = hRaw !== null && hRaw > 0 ? hRaw * scale : null;
-    let w = pRaw !== null && pRaw > 0 ? pRaw * scale : null;
+    const l = lRaw !== null && lRaw > 0 ? toMetres(lRaw, unit) : null;
+    const h = hRaw !== null && hRaw > 0 ? toMetres(hRaw, unit) : null;
+    let w = pRaw !== null && pRaw > 0 ? toMetres(pRaw, unit) : null;
 
-    // No depth column ⇒ derive it from mass + density (see deriveDepthMm).
+    // No depth column ⇒ derive it from mass + density (see deriveDepthM).
     if (w === null && cols.dimensionP === undefined && l !== null && h !== null) {
-      w = deriveDepthMm(explicitWeightKg, rules.densityKgPerM3, l, h);
+      w = deriveDepthM(explicitWeightKg, rules.densityKgPerM3, l, h);
     }
 
     const dimensions: Dimensions | null =
       l !== null && h !== null && w !== null && w > 0 ? { l, w, h } : null;
 
     const qtyParsed =
-      cols.quantity !== undefined ? parseItalianNumber(cell(row, cols.quantity)) : null;
+      cols.quantity !== undefined ? num(cell(row, cols.quantity)) : null;
     const quantity = qtyParsed !== null && qtyParsed >= 1 ? Math.floor(qtyParsed) : 1;
 
     const weightKg = estimateWeightKg({

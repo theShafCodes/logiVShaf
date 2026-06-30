@@ -10,6 +10,7 @@ import { QuotePanel } from "@/components/results/QuotePanel";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { VanConfigPanel } from "@/components/admin/VanConfigPanel";
 import { FleetCostExplorer } from "@/components/admin/FleetCostExplorer";
+import { VanSessionProvider } from "@/lib/hooks/use-van-session";
 import { QuotationHistory } from "@/components/results/QuotationHistory";
 import { PlacesInput } from "@/components/PlacesInput";
 import { color, font, spacing, radius, buttonPrimary, buttonSecondary, card } from "@/styles/tokens";
@@ -467,9 +468,10 @@ export default function Home() {
             )}
           </div>
 
-          <VanConfigPanel />
-
-          <FleetCostExplorer />
+          <VanSessionProvider>
+            <VanConfigPanel />
+            <FleetCostExplorer />
+          </VanSessionProvider>
 
           <QuotationHistory />
 

@@ -287,23 +287,40 @@ function VanCard({
   const names = placements.map((p) => nameFor(p.itemId));
   const { volumeFill, floorFootprint } = computeUtilization(placements, result.van.interior);
 
-  const handlePlacementsChange = onPlacementsChange;
+  const isModified = placements.length !== result.placements.length ||
+    placements.some((p, i) => {
+      const orig = result.placements[i];
+      return !orig || p.position.x !== orig.position.x || p.position.y !== orig.position.y || p.position.z !== orig.position.z;
+    });
 
   return (
     <div style={card}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap", gap: spacing.sm }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: spacing.sm, flexWrap: "wrap" }}>
           <p style={{ ...label, margin: 0 }}>Van {index + 1}{total > 1 ? ` of ${total}` : ""}</p>
+          <span style={{ fontSize: font.md ?? font.sm, fontWeight: 600, color: color.text }}>{result.van.label}</span>
           <span style={{ fontSize: font.sm, color: color.muted }}>
             {describeVan(result.van.interior, result.van.maxPayloadKg)}
           </span>
         </div>
-        {(onPrev || onNext) && (
-          <div style={{ display: "flex", gap: spacing.xs }}>
-            <button type="button" onClick={onPrev} aria-label="Previous van" style={navBtn}>‹ Prev</button>
-            <button type="button" onClick={onNext} aria-label="Next van" style={navBtn}>Next ›</button>
-          </div>
-        )}
+        <div style={{ display: "flex", gap: spacing.xs, alignItems: "center" }}>
+          {isModified && (
+            <button
+              type="button"
+              onClick={() => onPlacementsChange([...result.placements])}
+              title="Restore the computer-suggested layout"
+              style={{ ...navBtn, borderColor: color.accent, color: color.accent }}
+            >
+              Reset layout
+            </button>
+          )}
+          {(onPrev || onNext) && (
+            <>
+              <button type="button" onClick={onPrev} aria-label="Previous van" style={navBtn}>‹ Prev</button>
+              <button type="button" onClick={onNext} aria-label="Next van" style={navBtn}>Next ›</button>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: spacing.sm, marginBottom: spacing.md }}>
@@ -318,7 +335,7 @@ function VanCard({
         interior={result.van.interior}
         itemNames={names}
         editable
-        onPlacementsChange={handlePlacementsChange}
+        onPlacementsChange={onPlacementsChange}
         itemById={itemById}
       />
 
@@ -339,11 +356,11 @@ function VanCard({
                   <tr key={i} style={{ background: p.fragile ? color.fragile.bg : "transparent" }}>
                     <td style={{ ...tdSm, color: color.muted }}>{i + 1}</td>
                     <td style={{ ...tdSm, fontWeight: 600 }}>{nameFor(p.itemId)}</td>
-                    <td style={tdNum}>{smartNum(p.position.x / 1000)}</td>
-                    <td style={tdNum}>{smartNum((result.van.interior.w - (p.position.y + p.size.y)) / 1000)}</td>
-                    <td style={tdNum}>{smartNum(p.position.y / 1000)}</td>
-                    <td style={tdNum}>{smartNum(p.position.z / 1000)}</td>
-                    <td style={tdNum}>{smartNum(p.size.x / 1000)}×{smartNum(p.size.y / 1000)}×{smartNum(p.size.z / 1000)}</td>
+                    <td style={tdNum}>{smartNum(p.position.x)}</td>
+                    <td style={tdNum}>{smartNum(result.van.interior.w - (p.position.y + p.size.y))}</td>
+                    <td style={tdNum}>{smartNum(p.position.y)}</td>
+                    <td style={tdNum}>{smartNum(p.position.z)}</td>
+                    <td style={tdNum}>{smartNum(p.size.x)}×{smartNum(p.size.y)}×{smartNum(p.size.z)}</td>
                     <td style={tdNum}>{smartNum(p.weightKg)}</td>
                     <td style={{ ...tdSm, color: p.fragile ? color.fragile.fg : color.standard.fg, fontWeight: 600 }}>
                       {p.fragile ? "Fragile" : "Standard"}

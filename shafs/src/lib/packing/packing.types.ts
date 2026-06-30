@@ -3,8 +3,7 @@
  *
  * Coordinate system: the van interior is an axis-aligned box with its origin at
  * one bottom corner. `x` runs along the van length (`l`), `y` along the width
- * (`w`), `z` upward (`h`). All linear units are millimetres (mm), matching the
- * source PDF (see docs/load-calculation.md). Mass is kilograms.
+ * (`w`), `z` upward (`h`). All linear units are metres (m). Mass is kilograms.
  *
  * Reference dimension mapping (Arredo3 `L/H/P` → our `l/w/h`):
  *   L (lunghezza)  → l   (length, van x)
@@ -13,14 +12,14 @@
  */
 import type { Fragility } from "@/lib/classification/types";
 
-/** A point or size in van-space (mm). */
+/** A point or size in van-space (m). */
 export interface Vec3 {
   readonly x: number;
   readonly y: number;
   readonly z: number;
 }
 
-/** Box dimensions in an item's own frame (mm). */
+/** Box dimensions in an item's own frame (m). */
 export interface Dimensions {
   readonly l: number;
   readonly w: number;
@@ -83,7 +82,7 @@ export interface Van {
   readonly label: string;
   readonly interior: Dimensions;
   readonly maxPayloadKg: number;
-  /** Loading aperture (mm); optional gate constraint. */
+  /** Loading aperture (m); optional gate constraint. */
   readonly doorAperture?: { readonly w: number; readonly h: number };
   /** Estimated fuel cost per mile for operating-cost views. */
   readonly fuelCostPerMile?: number;
@@ -103,9 +102,9 @@ export interface Van {
 /** One placed unit of an item. Size maps l→x, w→y, h→z (natural orientation). */
 export interface Placement {
   readonly itemId: string;
-  /** Bottom-near-left corner of the box in van-space (mm). */
+  /** Bottom-near-left corner of the box in van-space (m). */
   readonly position: Vec3;
-  /** Size in van axes x/y/z (mm): l→x, w→y, h→z. */
+  /** Size in van axes x/y/z (m): l→x, w→y, h→z. */
   readonly size: Vec3;
   readonly fragile: boolean;
   readonly weightKg: number;

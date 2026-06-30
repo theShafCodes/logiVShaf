@@ -5,29 +5,26 @@
  * file is imported by both the server packer and the React client.
  *
  * Coordinate system matches packing.types: origin at one bottom corner, x = van
- * length (l), y = width (w), z up (h), all millimetres. "Touching faces do not
+ * length (l), y = width (w), z up (h), all metres. "Touching faces do not
  * overlap" — boxes may sit flush against each other.
  */
 import { volumeM3, volumeM3Vec3 } from "@/lib/packing/geometry";
 import type { Dimensions, Placement, Vec3 } from "@/lib/packing/packing.types";
 
-/** Items whose base sits within this many mm of z=0 count as resting on the floor. */
-const FLOOR_EPS_MM = 1;
+/** Items whose base sits within this many m of z=0 count as resting on the floor. 0.001 m = 1 mm. */
+const FLOOR_EPS_M = 0.001;
 
 /** Standard gravity (m/s²) for the vertical-pressure model. */
 const G = 9.80665;
-/** mm² per m² — converts a footprint in mm² to the m² a pressure is expressed over. */
-const MM2_PER_M2 = 1_000_000;
 
 /**
  * Downward pressure (kPa) that a mass of `weightKg` exerts over a contact face of
- * `areaMm2`:  P = (m · g) / A.  Vertical only — horizontal forces and an item's
+ * `areaM2`:  P = (m · g) / A.  Vertical only — horizontal forces and an item's
  * own internal/self weight are out of scope for this model (assumptions stated by
  * design). A non-positive area is treated as infinite pressure (refuse).
  */
-export function stackPressureKpa(weightKg: number, areaMm2: number): number {
-  if (areaMm2 <= 0) return Infinity;
-  const areaM2 = areaMm2 / MM2_PER_M2;
+export function stackPressureKpa(weightKg: number, areaM2: number): number {
+  if (areaM2 <= 0) return Infinity;
   return (weightKg * G) / areaM2 / 1000; // Pa → kPa
 }
 
@@ -48,7 +45,7 @@ export interface PlacementCandidate {
 export interface ValidationContext {
   readonly others: readonly Placement[];
   readonly interior: Dimensions;
-  readonly toleranceMm: number;
+  readonly toleranceM: number;
 }
 
 export interface ValidationResult {
@@ -152,7 +149,7 @@ export function validatePlacement(
   ctx: ValidationContext,
 ): ValidationResult {
   const { position, size, weightKg, fragile } = candidate;
-  const { others, interior, toleranceMm: tol } = ctx;
+  const { others, interior, toleranceM: tol } = ctx;
 
   if (!fitsInterior(position, size, interior, tol)) {
     return { ok: false, reason: "exceeds van bounds" };
@@ -220,7 +217,7 @@ export function computeUtilization(
 
   const floorArea = interior.l * interior.w;
   const floorUsed = placements.reduce(
-    (sum, p) => (p.position.z <= FLOOR_EPS_MM ? sum + p.size.x * p.size.y : sum),
+    (sum, p) => (p.position.z <= FLOOR_EPS_M ? sum + p.size.x * p.size.y : sum),
     0,
   );
   const floorFootprint = floorArea > 0 ? floorUsed / floorArea : 0;

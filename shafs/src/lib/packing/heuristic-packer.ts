@@ -32,10 +32,21 @@ import type {
  * Scaled so the support bonus dominates the height reward, which dominates the
  * compaction nudge; ties never hinge on floating-point noise.
  */
-const W_Z = 1_000;            // reward per mm of height for a stackable item
+const W_Z = 1_000_000;        // reward per m of height for a stackable item
 const SUPPORT_BONUS = 1_000_000; // flat reward for resting on a rated base (z>0)
-const W_COMPACT = 1;          // penalty per mm of (x+y) distance from the origin
-const W_FLAT = 1;             // penalty per mm of z-dimension for stackable floor items — prefers flat orientations so items can stack on top of each other rather than standing tall and blocking the ceiling
+const W_COMPACT = 1_000;      // penalty per m of (x+y) distance from the origin
+const W_FLAT = 1_000;         // penalty per m of z-dimension for stackable floor items — prefers flat orientations so items can stack on top of each other rather than standing tall and blocking the ceiling
+
+/**
+ * Cap on the active extreme-point anchor set (calibration knob — keep, do not
+ * inline). The scorer always prefers the lowest, most-compact anchors, so once
+ * the set grows past this we keep only the best (lowest z, then y, then x) and
+ * drop the far corners that would never win. Bounds a single pack to O(units ×
+ * MAX_ANCHORS) instead of O(units²) on large jobs; small jobs never reach the
+ * cap, so their placement is byte-for-byte unchanged. 128 comfortably exceeds
+ * the anchor count of any realistic single-van fill.
+ */
+const MAX_ANCHORS = 128;
 
 /**
  * Higher is better. Rewards a stackable item for sitting high on a rated base
@@ -102,8 +113,8 @@ const REASON = {
 } as const;
 
 export interface HeuristicOptions {
-  /** Clearance slack (mm) when fitting into the interior and matching support faces. */
-  readonly toleranceMm: number;
+  /** Clearance slack (m) when fitting into the interior and matching support faces. */
+  readonly toleranceM: number;
 }
 
 export class HeuristicPacker implements Packer {
@@ -112,7 +123,7 @@ export class HeuristicPacker implements Packer {
   constructor(private readonly opts: HeuristicOptions) {}
 
   pack(items: Item[], van: Van): PackingResult {
-    const tol = this.opts.toleranceMm;
+    const tol = this.opts.toleranceM;
     const {interior} = van;
     const placements: Placement[] = [];
     const reasons: Record<string, string> = {};
@@ -155,6 +166,11 @@ export class HeuristicPacker implements Packer {
     // Extreme-point anchors; seed at the origin corner.
     let anchors: Vec3[] = [{ x: 0, y: 0, z: 0 }];
     let payloadKg = 0;
+    // Free-volume bound: a unit larger than the volume still unused cannot fit, no
+    // matter how it's rotated. Once the van is full this gates the rest cheaply,
+    // instead of running the full anchor scan on hundreds of doomed units.
+    const interiorVolume = interior.l * interior.w * interior.h;
+    let placedVolume = 0;
 
     for (const unit of units) {
       // Weight gate first — position-independent.
@@ -176,6 +192,12 @@ export class HeuristicPacker implements Packer {
         continue;
       }
 
+      // Hard necessary condition: can't fit a unit bigger than the free volume.
+      if (unit.volume > interiorVolume - placedVolume) {
+        recordFailure(unit.item, REASON.noSpace);
+        continue;
+      }
+
       const placed = this.tryPlace(unit, anchors, placements, interior, tol);
       if (placed === null) {
         recordFailure(unit.item, REASON.noSpace);
@@ -184,6 +206,7 @@ export class HeuristicPacker implements Packer {
 
       placements.push(placed);
       payloadKg += unit.item.weightKg;
+      placedVolume += unit.volume;
       anchors = this.nextAnchors(anchors, placed);
     }
 
@@ -227,7 +250,7 @@ export class HeuristicPacker implements Packer {
             weightKg: unit.item.weightKg,
             fragile: unit.item.fragility === "fragile",
           },
-          { others: placements, interior, toleranceMm: tol },
+          { others: placements, interior, toleranceM: tol },
         );
         if (!verdict.ok) continue;
         const score = scoreCandidate(pos, o.size, unit.item.stackable);
@@ -260,11 +283,16 @@ export class HeuristicPacker implements Packer {
     const merged = [...anchors, ...spawned];
     // De-duplicate identical anchors to keep the list bounded + deterministic.
     const seen = new Set<string>();
-    return merged.filter((a) => {
+    const unique = merged.filter((a) => {
       const key = `${a.x}:${a.y}:${a.z}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
+    if (unique.length <= MAX_ANCHORS) return unique;
+    // Keep the best (lowest, most-compact) anchors — the only ones the scorer ever
+    // prefers — and drop the far corners. Bounds large-job cost; small jobs never
+    // reach the cap so this is a no-op for them.
+    return unique.sort((a, b) => a.z - b.z || a.y - b.y || a.x - b.x).slice(0, MAX_ANCHORS);
   }
 }

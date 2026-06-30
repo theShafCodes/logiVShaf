@@ -5,6 +5,8 @@ export interface Route {
   readonly destination: string;
   readonly distanceMiles: number;
   readonly durationSeconds: number;
+  /** How the distance was calculated. "road" = Google Maps driving distance; "straight-line" = haversine fallback. */
+  readonly distanceMethod: "road" | "straight-line";
 }
 
 export interface QuoteLineItem {

@@ -4,7 +4,7 @@ import { HeuristicPacker } from "@/lib/packing/heuristic-packer";
 import type { Placement } from "@/lib/packing/packing.types";
 import { makeItem, makeVan } from "./fixtures";
 
-const packer = new HeuristicPacker({ toleranceMm: 5 });
+const packer = new HeuristicPacker({ toleranceM: 0.005 });
 
 /** Pairwise strict-overlap check (touching faces allowed). */
 function anyOverlap(ps: Placement[]): boolean {
@@ -48,8 +48,8 @@ describe("HeuristicPacker — basics", () => {
 
 describe("HeuristicPacker — edge cases", () => {
   it("flags an item larger than the interior", () => {
-    const van = makeVan({ interior: { l: 1000, w: 1000, h: 1000 } });
-    const big = makeItem({ id: "big", dimensions: { l: 4000, w: 900, h: 900 } });
+    const van = makeVan({ interior: { l: 1.0, w: 1.0, h: 1.0 } });
+    const big = makeItem({ id: "big", dimensions: { l: 4.0, w: 0.9, h: 0.9 } });
     const r = packer.pack([big], van);
     expect(r.placements).toHaveLength(0);
     expect(r.unplaced).toHaveLength(1);
@@ -73,11 +73,11 @@ describe("HeuristicPacker — edge cases", () => {
   });
 
   it("flags an orientation-fixed item too tall to stand and barred from tipping", () => {
-    const van = makeVan({ interior: { l: 3000, w: 1800, h: 1900 } });
+    const van = makeVan({ interior: { l: 3.0, w: 1.8, h: 1.9 } });
     const tooTall = makeItem({
       id: "tall",
       category: "tall-unit",
-      dimensions: { l: 600, w: 600, h: 2500 },
+      dimensions: { l: 0.6, w: 0.6, h: 2.5 },
       orientationFixed: true,
     });
     const r = packer.pack([tooTall], van);
@@ -90,7 +90,7 @@ describe("HeuristicPacker — stacking & rotation", () => {
   it("builds upward: stackable items in a wide, tall van produce z>0 placements", () => {
     // Floor easily fits all items side by side, so only an upward preference yields
     // stacking — this would be all-floor (z=0) under the old floor-first scan.
-    const van = makeVan({ interior: { l: 3000, w: 1800, h: 1900 } });
+    const van = makeVan({ interior: { l: 3.0, w: 1.8, h: 1.9 } });
     const items = Array.from({ length: 6 }, (_, i) =>
       makeItem({ id: `c${i}`, weightKg: 10, canSupportWeightKg: 80 }),
     );
@@ -101,7 +101,7 @@ describe("HeuristicPacker — stacking & rotation", () => {
   });
 
   it("keeps non-stackable items on the floor", () => {
-    const van = makeVan({ interior: { l: 3000, w: 1800, h: 1900 } });
+    const van = makeVan({ interior: { l: 3.0, w: 1.8, h: 1.9 } });
     const items = Array.from({ length: 4 }, (_, i) =>
       makeItem({ id: `a${i}`, category: "appliance", stackable: false, canSupportWeightKg: 0 }),
     );
@@ -111,11 +111,11 @@ describe("HeuristicPacker — stacking & rotation", () => {
   });
 
   it("tips a box that only fits rotated when orientation is free", () => {
-    const van = makeVan({ interior: { l: 3000, w: 1800, h: 1900 } });
+    const van = makeVan({ interior: { l: 3.0, w: 1.8, h: 1.9 } });
     const tippable = makeItem({
       id: "tip",
-      dimensions: { l: 600, w: 600, h: 2500 }, // stands too tall (2500 > 1900)…
-      orientationFixed: false, // …but may lie down (2500 along the 3000 length)
+      dimensions: { l: 0.6, w: 0.6, h: 2.5 }, // stands too tall (2.5 > 1.9)…
+      orientationFixed: false, // …but may lie down (2.5 along the 3.0 length)
     });
     const r = packer.pack([tippable], van);
     expect(r.placements).toHaveLength(1);
@@ -127,7 +127,7 @@ describe("HeuristicPacker — stacking & rotation", () => {
   it("is deterministic with rotation enabled", () => {
     const van = makeVan();
     const items = Array.from({ length: 7 }, (_, i) =>
-      makeItem({ id: `d${i}`, dimensions: { l: 500, w: 400, h: 700 }, weightKg: 12 }),
+      makeItem({ id: `d${i}`, dimensions: { l: 0.5, w: 0.4, h: 0.7 }, weightKg: 12 }),
     );
     expect(packer.pack(items, van).placements).toEqual(packer.pack(items, van).placements);
   });
@@ -135,20 +135,20 @@ describe("HeuristicPacker — stacking & rotation", () => {
 
 describe("HeuristicPacker — standard stacking (fragility-driven)", () => {
   // Footprint of exactly one box ⇒ the only way to place N is a vertical column.
-  const columnVan = (h: number) => makeVan({ interior: { l: 620, w: 620, h }, maxPayloadKg: 5000 });
+  const columnVan = (h: number) => makeVan({ interior: { l: 0.62, w: 0.62, h }, maxPayloadKg: 5000 });
 
   it("stacks standard-on-standard into a vertical column", () => {
     // Headline behaviour: three identical standard boxes can only fit by stacking.
     const items = Array.from({ length: 3 }, (_, i) =>
       makeItem({ id: `s${i}`, fragility: "standard", weightKg: 30 }),
     );
-    const r = packer.pack(items, columnVan(2400)); // 3 × 700 = 2100 < 2400
+    const r = packer.pack(items, columnVan(2.4)); // 3 × 0.7 = 2.1 < 2.4
 
     expect(r.placements).toHaveLength(3);
     expect(r.unplaced).toHaveLength(0);
     expect(anyOverlap(r.placements)).toBe(false);
     const zs = r.placements.map((p) => p.position.z).sort((a, b) => a - b);
-    expect(zs).toEqual([0, 700, 1400]); // strictly increasing column, flush faces
+    expect(zs).toEqual([0, 0.7, 1.4]); // strictly increasing column, flush faces
   });
 
   it("stacks even when the base's weight rating is far below the top's mass", () => {
@@ -158,7 +158,7 @@ describe("HeuristicPacker — standard stacking (fragility-driven)", () => {
       makeItem({ id: "a", fragility: "standard", weightKg: 200, canSupportWeightKg: 5 }),
       makeItem({ id: "b", fragility: "standard", weightKg: 200, canSupportWeightKg: 5 }),
     ];
-    const r = packer.pack(items, columnVan(2000)); // payload 5000 ≥ 2×200
+    const r = packer.pack(items, columnVan(2.0)); // payload 5000 ≥ 2×200
 
     expect(r.placements).toHaveLength(2);
     expect(anyOverlap(r.placements)).toBe(false);
@@ -166,11 +166,11 @@ describe("HeuristicPacker — standard stacking (fragility-driven)", () => {
   });
 
   it("overflows when the column hits the van roof", () => {
-    // Floor fits one footprint; height fits exactly two boxes (2×700 < 1500 < 3×700).
+    // Floor fits one footprint; height fits exactly two boxes (2×0.7 < 1.5 < 3×0.7).
     const items = Array.from({ length: 4 }, (_, i) =>
       makeItem({ id: `o${i}`, fragility: "standard", weightKg: 20 }),
     );
-    const r = packer.pack(items, columnVan(1500));
+    const r = packer.pack(items, columnVan(1.5));
 
     expect(r.placements).toHaveLength(2);
     expect(r.unplaced).toHaveLength(2); // two boxes have nowhere to go
@@ -183,16 +183,16 @@ describe("HeuristicPacker — standard stacking (fragility-driven)", () => {
     const small = makeItem({
       id: "small",
       fragility: "standard",
-      dimensions: { l: 300, w: 300, h: 300 },
+      dimensions: { l: 0.3, w: 0.3, h: 0.3 },
       canSupportWeightKg: 100,
     });
     const big = makeItem({
       id: "big",
       fragility: "standard",
-      dimensions: { l: 600, w: 600, h: 700 },
+      dimensions: { l: 0.6, w: 0.6, h: 0.7 },
       canSupportWeightKg: 10,
     });
-    const van = makeVan({ interior: { l: 2000, w: 620, h: 2000 } });
+    const van = makeVan({ interior: { l: 2.0, w: 0.62, h: 2.0 } });
     const r = packer.pack([small, big], van);
 
     expect(r.placements).toHaveLength(2);
@@ -208,7 +208,7 @@ describe("HeuristicPacker — standard stacking (fragility-driven)", () => {
       makeItem({ id: "std1", fragility: "standard", weightKg: 20 }),
       makeItem({ id: "glass", fragility: "fragile", stackable: false, weightKg: 20 }),
     ];
-    const van = makeVan({ interior: { l: 1300, w: 620, h: 1600 } });
+    const van = makeVan({ interior: { l: 1.3, w: 0.62, h: 1.6 } });
     const r = packer.pack(items, van);
 
     expect(r.placements).toHaveLength(3);
@@ -220,7 +220,7 @@ describe("HeuristicPacker — standard stacking (fragility-driven)", () => {
 
 describe("HeuristicPacker — crush pressure & fragile compatibility", () => {
   it("stacks fragile-on-fragile into a column", () => {
-    const van = makeVan({ interior: { l: 620, w: 620, h: 2000 }, maxPayloadKg: 1000 });
+    const van = makeVan({ interior: { l: 0.62, w: 0.62, h: 2.0 }, maxPayloadKg: 1000 });
     const items = Array.from({ length: 2 }, (_, i) =>
       makeItem({ id: `f${i}`, fragility: "fragile", weightKg: 10 }),
     );
@@ -234,7 +234,7 @@ describe("HeuristicPacker — crush pressure & fragile compatibility", () => {
     // (300 kg / 0.36 m² ≈ 8.2 kPa) exceeds the soft base's 3 kPa limit, so it floors.
     const base = makeItem({ id: "a-soft", weightKg: 10, maxStackPressureKpa: 3 });
     const heavy = makeItem({ id: "z-heavy", weightKg: 300, maxStackPressureKpa: 50 });
-    const van = makeVan({ interior: { l: 1300, w: 620, h: 2000 }, maxPayloadKg: 1000 });
+    const van = makeVan({ interior: { l: 1.3, w: 0.62, h: 2.0 }, maxPayloadKg: 1000 });
     const r = packer.pack([base, heavy], van);
 
     expect(r.placements).toHaveLength(2);
@@ -245,7 +245,7 @@ describe("HeuristicPacker — crush pressure & fragile compatibility", () => {
 
 describe("HeuristicPacker — fragility / support invariants", () => {
   // Narrow tall van forces vertical stacking (floor footprint fits one item).
-  const stackVan = makeVan({ interior: { l: 620, w: 620, h: 2000 }, maxPayloadKg: 1000 });
+  const stackVan = makeVan({ interior: { l: 0.62, w: 0.62, h: 2.0 }, maxPayloadKg: 1000 });
 
   it("the load-bearing (lower) placement is never fragile", () => {
     const items = [
@@ -271,7 +271,7 @@ describe("HeuristicPacker — fragility / support invariants", () => {
       const resting = r.placements.filter(
         (p) =>
           p !== f &&
-          Math.abs(p.position.z - top) <= 5 &&
+          Math.abs(p.position.z - top) <= 0.005 &&
           p.position.x < f.position.x + f.size.x &&
           f.position.x < p.position.x + p.size.x &&
           p.position.y < f.position.y + f.size.y &&

@@ -10,8 +10,10 @@ import { color, font, spacing } from "@/styles/tokens";
 
 /* ── Scale helper ───────────────────────────────────────────────────────── */
 
-// Three.js works in metres; source data is in mm.
-const MM_TO_M = 0.001;
+// Three.js works in metres and so does our source data (config, packer, placements
+// are all metres) — the mapping is 1:1. `mm`/`MM_TO_M` are kept as the scene-scale
+// seam in case a future unit ever needs converting; today they are an identity.
+const MM_TO_M = 1;
 function mm(v: number) { return v * MM_TO_M; }
 
 /* ── Theme (single source of truth = globals.css :root) ─────────────────────
@@ -155,7 +157,7 @@ function ItemBox({ placement, frame, theme, index, name, selected, editable, onP
           <div style={tooltip}>
             <strong>{label}. {name ?? `Item ${label}`}</strong>
             <br />
-            {(placement.size.x/1000).toFixed(2)}×{(placement.size.y/1000).toFixed(2)}×{(placement.size.z/1000).toFixed(2)} m
+            {placement.size.x.toFixed(2)}×{placement.size.y.toFixed(2)}×{placement.size.z.toFixed(2)} m
             <br />
             {placement.weightKg} kg &nbsp;
             <span style={{ color: placement.fragile ? color.fragile.fg : color.standard.fg }}>
@@ -280,7 +282,7 @@ function Scene({ placements, interior, itemNames, theme, editable, onPlacementsC
         weightKg: candidate.weightKg,
         fragile: candidate.fragile,
       },
-      { others, interior, toleranceMm: 5 },
+      { others, interior, toleranceM: 0.005 },
     );
     if (verdict.ok && z > 0 && !moving.stackable) {
       verdict = { ok: false, reason: "this item cannot be stacked" };
@@ -559,7 +561,7 @@ export function Van3DViewer({
 
     const verdict = validatePlacement(
       { position: newPlacement.position, size, weightKg: item.weightKg, fragile: newPlacement.fragile },
-      { others: placements, interior, toleranceMm: 5 },
+      { others: placements, interior, toleranceM: 0.005 },
     );
 
     if (verdict.ok) {

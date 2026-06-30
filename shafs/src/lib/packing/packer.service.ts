@@ -85,7 +85,7 @@ export interface PackerServiceDeps {
 function defaultDeps(): PackerServiceDeps {
   return {
     vanRepository: new FileVanRepository(),
-    packer: new HeuristicPacker({ toleranceMm: getConfig().packing.toleranceMm }),
+    packer: new HeuristicPacker({ toleranceM: getConfig().packing.toleranceM }),
   };
 }
 
@@ -107,6 +107,17 @@ export async function packJob(
 
   const packableUnits = countPackableUnits(items);
 
+  // Guard: ranking packs every unit into each fleet van, so cost grows with
+  // units × vans. Beyond this cap a synchronous pack takes minutes and freezes
+  // the UI — fail loud with the count rather than hang. Tunable via PACKING_MAX_PACKABLE_UNITS.
+  const maxPackableUnits = getConfig().packing.maxPackableUnits;
+  if (packableUnits > maxPackableUnits) {
+    throw new PackingError(
+      `job has ${packableUnits} packable units, exceeding the limit of ${maxPackableUnits}. ` +
+        `Split the cargo into smaller batches or raise PACKING_MAX_PACKABLE_UNITS.`,
+    );
+  }
+
   const vans = await perf.track("load-vans", async () => {
     const all = await deps.vanRepository.listVans();
     if (input.vanId) {
@@ -124,7 +135,7 @@ export async function packJob(
   // Cheapest combination of vans that carries the WHOLE job (overflow → +vans).
   const plan = await perf.track("allocate", async () =>
     allocateFleet(items, vans, deps.packer, {
-      toleranceMm: getConfig().packing.toleranceMm,
+      toleranceM: getConfig().packing.toleranceM,
     }),
   );
 

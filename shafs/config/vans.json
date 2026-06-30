@@ -1,37 +1,18 @@
 {
   "version": 1,
-  "_note": "maxPayloadKg values are temporarily inflated (~20x real) so weight stops gating placement while stacking behaviour is being tuned. Restore realistic payloads before pricing/quoting is trusted. Relative ordering between vans is preserved.",
   "vans": [
-    {
-      "id": "micro-panel",
-      "label": "Micro Panel Van",
-      "interior": {
-        "l": 1500,
-        "w": 1400,
-        "h": 1180
-      },
-      "maxPayloadKg": 11000,
-      "doorAperture": {
-        "w": 1000,
-        "h": 1020
-      },
-      "fuelCostPerMile": 0.19,
-      "perMileRate": 0.82,
-      "quantity": 65,
-      "sizeClass": "Small"
-    },
     {
       "id": "city-compact",
       "label": "City Compact Van",
       "interior": {
-        "l": 1750,
-        "w": 1500,
-        "h": 1210
+        "l": 1.75,
+        "w": 1.5,
+        "h": 1.21
       },
       "maxPayloadKg": 13000,
       "doorAperture": {
-        "w": 1080,
-        "h": 1070
+        "w": 1.08,
+        "h": 1.07
       },
       "fuelCostPerMile": 0.21,
       "perMileRate": 0.9,
@@ -42,14 +23,14 @@
       "id": "small-panel",
       "label": "Small Panel Van",
       "interior": {
-        "l": 2050,
-        "w": 1580,
-        "h": 1230
+        "l": 2.05,
+        "w": 1.58,
+        "h": 1.23
       },
       "maxPayloadKg": 15600,
       "doorAperture": {
-        "w": 1150,
-        "h": 1100
+        "w": 1.15,
+        "h": 1.1
       },
       "fuelCostPerMile": 0.23,
       "perMileRate": 0.98,
@@ -60,14 +41,14 @@
       "id": "partner-long",
       "label": "Long Wheelbase Van",
       "interior": {
-        "l": 2160,
-        "w": 1630,
-        "h": 1240
+        "l": 2.16,
+        "w": 1.63,
+        "h": 1.24
       },
       "maxPayloadKg": 17000,
       "doorAperture": {
-        "w": 1210,
-        "h": 1090
+        "w": 1.21,
+        "h": 1.09
       },
       "fuelCostPerMile": 0.25,
       "perMileRate": 1.02,
@@ -78,14 +59,14 @@
       "id": "medium-panel",
       "label": "Medium Wheelbase Van",
       "interior": {
-        "l": 2512,
-        "w": 1636,
-        "h": 1397
+        "l": 2.512,
+        "w": 1.636,
+        "h": 1.397
       },
       "maxPayloadKg": 25000,
       "doorAperture": {
-        "w": 1260,
-        "h": 1270
+        "w": 1.26,
+        "h": 1.27
       },
       "fuelCostPerMile": 0.27,
       "perMileRate": 1.28,
@@ -96,14 +77,14 @@
       "id": "luton-dropwell",
       "label": "Luton Dropwell Van",
       "interior": {
-        "l": 2850,
-        "w": 1800,
-        "h": 2050
+        "l": 2.85,
+        "w": 1.8,
+        "h": 2.05
       },
       "maxPayloadKg": 19000,
       "doorAperture": {
-        "w": 1700,
-        "h": 1980
+        "w": 1.7,
+        "h": 1.98
       },
       "fuelCostPerMile": 0.31,
       "perMileRate": 1.45,
@@ -114,14 +95,14 @@
       "id": "ducato-l2h2",
       "label": "Large Panel Van",
       "interior": {
-        "l": 3120,
-        "w": 1870,
-        "h": 1932
+        "l": 3.12,
+        "w": 1.87,
+        "h": 1.932
       },
       "maxPayloadKg": 28000,
       "doorAperture": {
-        "w": 1520,
-        "h": 1790
+        "w": 1.52,
+        "h": 1.79
       },
       "fuelCostPerMile": 0.33,
       "perMileRate": 1.6,
@@ -132,14 +113,14 @@
       "id": "ducato-l3h2",
       "label": "Extra-Large Panel Van",
       "interior": {
-        "l": 3705,
-        "w": 1870,
-        "h": 1932
+        "l": 3.705,
+        "w": 1.87,
+        "h": 1.932
       },
       "maxPayloadKg": 30000,
       "doorAperture": {
-        "w": 1520,
-        "h": 1790
+        "w": 1.52,
+        "h": 1.79
       },
       "fuelCostPerMile": 0.35,
       "perMileRate": 1.8,
@@ -150,14 +131,14 @@
       "id": "sprinter-l3h2",
       "label": "Long Wheelbase High Roof Van",
       "interior": {
-        "l": 4320,
-        "w": 1780,
-        "h": 1940
+        "l": 4.32,
+        "w": 1.78,
+        "h": 1.94
       },
       "maxPayloadKg": 32000,
       "doorAperture": {
-        "w": 1550,
-        "h": 1800
+        "w": 1.55,
+        "h": 1.8
       },
       "fuelCostPerMile": 0.38,
       "perMileRate": 1.95,
@@ -168,14 +149,14 @@
       "id": "transit-xlwb",
       "label": "Extra-Long Wheelbase Van",
       "interior": {
-        "l": 4700,
-        "w": 1784,
-        "h": 1960
+        "l": 4.7,
+        "w": 1.784,
+        "h": 1.96
       },
       "maxPayloadKg": 34000,
       "doorAperture": {
-        "w": 1550,
-        "h": 1820
+        "w": 1.55,
+        "h": 1.82
       },
       "fuelCostPerMile": 0.4,
       "perMileRate": 2.15,
@@ -186,14 +167,14 @@
       "id": "luton-tail-lift",
       "label": "Luton Box Van",
       "interior": {
-        "l": 4000,
-        "w": 2000,
-        "h": 2200
+        "l": 4,
+        "w": 2,
+        "h": 2.2
       },
       "maxPayloadKg": 20000,
       "doorAperture": {
-        "w": 1900,
-        "h": 2050
+        "w": 1.9,
+        "h": 2.05
       },
       "fuelCostPerMile": 0.44,
       "perMileRate": 2.4,
@@ -204,14 +185,14 @@
       "id": "box-truck-7-5t",
       "label": "7.5t Box Truck",
       "interior": {
-        "l": 6000,
-        "w": 2400,
-        "h": 2400
+        "l": 6,
+        "w": 2.4,
+        "h": 2.4
       },
       "maxPayloadKg": 56000,
       "doorAperture": {
-        "w": 2300,
-        "h": 2250
+        "w": 2.3,
+        "h": 2.25
       },
       "fuelCostPerMile": 0.55,
       "perMileRate": 3.1,
@@ -222,14 +203,14 @@
       "id": "box-truck-12t",
       "label": "12t Box Truck",
       "interior": {
-        "l": 6800,
-        "w": 2450,
-        "h": 2450
+        "l": 6.8,
+        "w": 2.45,
+        "h": 2.45
       },
       "maxPayloadKg": 100000,
       "doorAperture": {
-        "w": 2350,
-        "h": 2300
+        "w": 2.35,
+        "h": 2.3
       },
       "fuelCostPerMile": 0.7,
       "perMileRate": 3.65,
@@ -240,19 +221,127 @@
       "id": "box-truck-18t",
       "label": "18t Box Truck",
       "interior": {
-        "l": 7200,
-        "w": 2480,
-        "h": 2500
+        "l": 7.2,
+        "w": 2.48,
+        "h": 2.5
       },
       "maxPayloadKg": 180000,
       "doorAperture": {
-        "w": 2400,
-        "h": 2350
+        "w": 2.4,
+        "h": 2.35
       },
       "fuelCostPerMile": 0.92,
       "perMileRate": 4.2,
       "quantity": 8,
       "sizeClass": "Box truck"
+    },
+    {
+      "id": "refrigerated-van",
+      "label": "Refrigerated Van",
+      "interior": {
+        "l": 2.8,
+        "w": 1.75,
+        "h": 1.8
+      },
+      "maxPayloadKg": 15000,
+      "doorAperture": {
+        "w": 1.55,
+        "h": 1.7
+      },
+      "fuelCostPerMile": 0.36,
+      "perMileRate": 1.7,
+      "quantity": 20,
+      "sizeClass": "Refrigerated"
+    },
+    {
+      "id": "minibus-cargo",
+      "label": "Minibus Cargo Van",
+      "interior": {
+        "l": 3.5,
+        "w": 1.9,
+        "h": 1.6
+      },
+      "maxPayloadKg": 22000,
+      "doorAperture": {
+        "w": 1.7,
+        "h": 1.55
+      },
+      "fuelCostPerMile": 0.3,
+      "perMileRate": 1.55,
+      "quantity": 15,
+      "sizeClass": "Medium"
+    },
+    {
+      "id": "curtainsider-truck",
+      "label": "Curtainsider Truck",
+      "interior": {
+        "l": 7.5,
+        "w": 2.44,
+        "h": 2.5
+      },
+      "maxPayloadKg": 120000,
+      "doorAperture": {
+        "w": 2.44,
+        "h": 2.5
+      },
+      "fuelCostPerMile": 0.88,
+      "perMileRate": 3.85,
+      "quantity": 6,
+      "sizeClass": "Truck"
+    },
+    {
+      "id": "container-20ft",
+      "label": "20ft ISO Container",
+      "interior": {
+        "l": 5.9,
+        "w": 2.35,
+        "h": 2.39
+      },
+      "maxPayloadKg": 280000,
+      "doorAperture": {
+        "w": 2.29,
+        "h": 2.26
+      },
+      "fuelCostPerMile": 1.15,
+      "perMileRate": 5.4,
+      "quantity": 5,
+      "sizeClass": "Container"
+    },
+    {
+      "id": "container-40ft",
+      "label": "40ft ISO Container",
+      "interior": {
+        "l": 12.03,
+        "w": 2.35,
+        "h": 2.39
+      },
+      "maxPayloadKg": 265000,
+      "doorAperture": {
+        "w": 2.29,
+        "h": 2.26
+      },
+      "fuelCostPerMile": 1.45,
+      "perMileRate": 6.9,
+      "quantity": 4,
+      "sizeClass": "Container"
+    },
+    {
+      "id": "container-45hc",
+      "label": "45ft High Cube Container",
+      "interior": {
+        "l": 13.56,
+        "w": 2.35,
+        "h": 2.7
+      },
+      "maxPayloadKg": 270000,
+      "doorAperture": {
+        "w": 2.29,
+        "h": 2.56
+      },
+      "fuelCostPerMile": 1.55,
+      "perMileRate": 7.3,
+      "quantity": 3,
+      "sizeClass": "Container"
     }
   ]
 }

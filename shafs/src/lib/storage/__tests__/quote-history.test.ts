@@ -21,7 +21,7 @@ describe("QuoteHistoryStore", () => {
   it("appends and reads back quote history", async () => {
     const store = new QuoteHistoryStore();
     const quote = {
-      route: { origin: "A", destination: "B", distanceMiles: 12, durationSeconds: 600 },
+      route: { origin: "A", destination: "B", distanceMiles: 12, durationSeconds: 600, distanceMethod: "road" as const },
       vans: [],
       lineItems: [],
       subtotal: 0,

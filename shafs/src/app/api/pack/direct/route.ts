@@ -36,7 +36,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const cfg = getConfig().packing;
-    const packer = new HeuristicPacker({ toleranceMm: cfg.toleranceMm });
+    const packer = new HeuristicPacker({ toleranceM: cfg.toleranceM });
     const repo = new FileVanRepository();
     const packableUnits = countPackableUnits(items);
 
@@ -64,7 +64,7 @@ export async function POST(request: Request): Promise<Response> {
     if (vans.length === 0) {
       return NextResponse.json({ success: false, error: "No vans configured." }, { status: 400 });
     }
-    const plan = allocateFleet(items, vans, packer, { toleranceMm: cfg.toleranceMm });
+    const plan = allocateFleet(items, vans, packer, { toleranceM: cfg.toleranceM });
     // When nothing is placeable (all oversized / dimensionless), still succeed and
     // report the unplaced cargo — fall back to an empty pack so the UI has a van to
     // render. Mirrors packer.service so both endpoints behave consistently.

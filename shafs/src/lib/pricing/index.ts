@@ -64,7 +64,16 @@ export async function getQuote(
     deps.routeProvider.getRoute(input.origin, input.destination),
   );
 
-  const quote = calculateQuote(route, vans, input.fragileCount, cfg.fragilitySurchargePerItem, cfg.currencySymbol, input.vanPayloads, cfg.returnFactor);
+  const quote = calculateQuote(
+    route,
+    vans,
+    input.fragileCount,
+    cfg.fragilitySurchargePerItem,
+    cfg.currencySymbol,
+    input.vanPayloads,
+    cfg.returnFactor,
+    { hourlyRate: cfg.driverHourlyRate, loadUnloadMinutesPerVan: cfg.loadUnloadMinutesPerVan },
+  );
 
   logger.info("quote generated", {
     vanIds: input.vanIds,

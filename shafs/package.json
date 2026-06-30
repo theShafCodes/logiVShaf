@@ -2,13 +2,14 @@
   "name": "logi-ingestion",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "ingest": "tsx src/cli/ingest.ts",
+    "ingest": "tsx src/cli/ingest.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "pack:report": "vitest run src/lib/packing/__tests__/stacking-report.test.ts"

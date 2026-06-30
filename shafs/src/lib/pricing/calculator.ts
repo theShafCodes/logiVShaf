@@ -18,7 +18,18 @@ export class PricingError extends Error {
  * `returnFactor` scales the billed distance to cover the return drive: 1.0 = one-way,
  * 2.0 = full round trip (the van returns to base empty). `route.distanceMiles` stays
  * the true one-way figure; only the billed miles are multiplied.
+ *
+ * `labour` (optional) adds a driver-wage line: one driver per van, paid for the drive
+ * time (`route.durationSeconds`, scaled by `returnFactor` for the return leg) plus a
+ * fixed load/unload allowance per van. Omitted ⇒ no labour line (back-compatible).
  */
+export interface LabourRates {
+  /** Driver wage billed per hour. */
+  readonly hourlyRate: number;
+  /** Fixed paid handling time per van (load + unload), in minutes. */
+  readonly loadUnloadMinutesPerVan: number;
+}
+
 export function calculateQuote(
   route: Route,
   vans: Van[],
@@ -27,6 +38,7 @@ export function calculateQuote(
   currencySymbol = "£",
   vanPayloads?: number[],
   returnFactor = 1,
+  labour?: LabourRates,
 ): Quote {
   if (vans.length === 0) {
     throw new PricingError("at least one van is required to price a job");
@@ -78,8 +90,28 @@ export function calculateQuote(
     }
   }
 
+  // Driver labour: one driver per van. Drive time scales with the return factor (the
+  // driver drives home too); load/unload is a one-off handling allowance per van.
+  let labourSubtotal = 0;
+  if (labour) {
+    if (labour.hourlyRate < 0 || labour.loadUnloadMinutesPerVan < 0) {
+      throw new PricingError("driver labour rate and load/unload time must be non-negative");
+    }
+    const driveHours = (route.durationSeconds / 3600) * returnFactor;
+    const handlingHours = labour.loadUnloadMinutesPerVan / 60;
+    const hoursPerDriver = driveHours + handlingHours;
+    const drivers = vans.length;
+    labourSubtotal = drivers * labour.hourlyRate * hoursPerDriver;
+    if (labourSubtotal > 0) {
+      lineItems.push({
+        label: `Driver labour (${drivers} driver${drivers !== 1 ? "s" : ""} × ${hoursPerDriver.toFixed(1)}h @ ${currencySymbol}${labour.hourlyRate.toFixed(2)}/hr)`,
+        amount: labourSubtotal,
+      });
+    }
+  }
+
   const distanceSubtotal = quoteVans.reduce((sum, v) => sum + v.distanceCost, 0);
-  const subtotal = distanceSubtotal + fuelSubtotal;
+  const subtotal = distanceSubtotal + fuelSubtotal + labourSubtotal;
 
   const surcharges = fragileCount * fragilitySurchargePerItem;
   if (surcharges > 0) {

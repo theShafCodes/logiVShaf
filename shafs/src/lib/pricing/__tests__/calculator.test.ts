@@ -8,13 +8,14 @@ const route: Route = {
   destination: "Manchester",
   distanceMiles: 200,
   durationSeconds: 7200,
+  distanceMethod: "road",
 };
 
 function makeVan(overrides: Partial<Van> = {}): Van {
   return {
     id: overrides.id ?? "transit",
     label: overrides.label ?? "Transit L3",
-    interior: overrides.interior ?? { l: 4320, w: 1780, h: 1940 },
+    interior: overrides.interior ?? { l: 4.32, w: 1.78, h: 1.94 },
     maxPayloadKg: overrides.maxPayloadKg ?? 1600,
     perMileRate: overrides.perMileRate ?? 2.5,
   };
@@ -67,7 +68,7 @@ describe("calculateQuote", () => {
   });
 
   it("describes vans by capability (no brand name in the description)", () => {
-    const q = calculateQuote(route, [makeVan({ interior: { l: 4320, w: 1780, h: 1940 }, maxPayloadKg: 1600 })], 0, 5);
+    const q = calculateQuote(route, [makeVan({ interior: { l: 4.32, w: 1.78, h: 1.94 }, maxPayloadKg: 1600 })], 0, 5);
     expect(q.vans[0]?.description).toBe("4.32 × 1.78 × 1.94 m · up to 1600 kg");
   });
 
@@ -110,5 +111,55 @@ describe("calculateQuote", () => {
 
   it("throws PricingError when returnFactor is not positive", () => {
     expect(() => calculateQuote(route, [makeVan()], 0, 5, "£", undefined, 0)).toThrow(PricingError);
+  });
+
+  it("adds a driver labour line: one driver per van paid for drive + handling time", () => {
+    // route is 7200 s = 2 h drive (one-way). returnFactor 1, 30 min handling, £15/hr.
+    const q = calculateQuote(route, [makeVan({ perMileRate: 2.5 })], 0, 5, "£", undefined, 1, {
+      hourlyRate: 15,
+      loadUnloadMinutesPerVan: 30,
+    });
+    // hoursPerDriver = 2 h drive + 0.5 h handling = 2.5 h; 1 driver × £15 × 2.5 = £37.50
+    expect(q.subtotal).toBe(500 + 37.5);
+    expect(q.lineItems.at(-1)?.label).toMatch(/Driver labour \(1 driver × 2.5h @ £15.00\/hr\)/);
+  });
+
+  it("scales drive time by the return factor but not the handling allowance", () => {
+    const q = calculateQuote(route, [makeVan({ perMileRate: 2.5 })], 0, 5, "£", undefined, 2, {
+      hourlyRate: 15,
+      loadUnloadMinutesPerVan: 30,
+    });
+    // drive 2 h × 2 = 4 h + 0.5 h handling = 4.5 h; £15 × 4.5 = £67.50 labour
+    const labour = q.lineItems.find((l) => /Driver labour/.test(l.label));
+    expect(labour?.amount).toBe(67.5);
+  });
+
+  it("charges one driver per van across a multi-van job", () => {
+    const q = calculateQuote(
+      route,
+      [makeVan({ id: "a", perMileRate: 1 }), makeVan({ id: "b", perMileRate: 1 })],
+      0,
+      5,
+      "£",
+      undefined,
+      1,
+      { hourlyRate: 15, loadUnloadMinutesPerVan: 30 },
+    );
+    // 2 drivers × £15 × 2.5 h = £75
+    const labour = q.lineItems.find((l) => /Driver labour/.test(l.label));
+    expect(labour?.amount).toBe(75);
+    expect(labour?.label).toMatch(/2 drivers/);
+  });
+
+  it("omits the labour line when no labour rates are supplied (back-compatible)", () => {
+    const q = calculateQuote(route, [makeVan({ perMileRate: 2.5 })], 0, 5);
+    expect(q.lineItems.some((l) => /Driver labour/.test(l.label))).toBe(false);
+    expect(q.subtotal).toBe(500);
+  });
+
+  it("throws PricingError when the driver hourly rate is negative", () => {
+    expect(() =>
+      calculateQuote(route, [makeVan()], 0, 5, "£", undefined, 1, { hourlyRate: -1, loadUnloadMinutesPerVan: 30 }),
+    ).toThrow(PricingError);
   });
 });

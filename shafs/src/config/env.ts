@@ -115,10 +115,12 @@ export interface AppConfig {
     readonly columnMapPath: string;
     /** Van fleet presets file. */
     readonly vansPath: string;
-    /** Clearance slack (mm) allowed when fitting a box into the interior / gaps. */
-    readonly toleranceMm: number;
+    /** Clearance slack (m) allowed when fitting a box into the interior / gaps. */
+    readonly toleranceM: number;
     /** Cap on how many fleet vans the ranking fallback will evaluate. */
     readonly maxVansToConsider: number;
+    /** Reject packing jobs whose total packable units exceed this — guards against multi-minute synchronous packs. */
+    readonly maxPackableUnits: number;
   };
   readonly routing: {
     readonly provider: string;
@@ -128,10 +130,16 @@ export interface AppConfig {
     readonly currencySymbol: string;
     /** Distance multiplier billed to the customer. 1.0 = one-way, 2.0 = full round trip (van returns to base). */
     readonly returnFactor: number;
+    /** Driver wage billed per hour. UK-realistic loaded cost (wage + employer NI + holiday). One driver per van. */
+    readonly driverHourlyRate: number;
+    /** Fixed paid handling time per van — loading at origin + unloading at destination. Not doubled on the return leg. */
+    readonly loadUnloadMinutesPerVan: number;
   };
   readonly storage: {
-    /** Archive the source PDF + structured document to R2. Off unless explicitly enabled. */
+    /** Archive the source PDF + structured document. Off unless explicitly enabled. */
     readonly enabled: boolean;
+    /** Folder for the local (no-cloud) backend, used when R2 creds are absent. */
+    readonly dir: string;
     readonly accountId: string;
     readonly accessKeyId: string;
     readonly secretAccessKey: string;
@@ -140,6 +148,8 @@ export interface AppConfig {
   readonly quoteHistory: {
     /** JSON file holding successful quote snapshots for the admin history list. */
     readonly path: string;
+    /** Maximum number of entries kept; oldest are dropped when the cap is exceeded. */
+    readonly maxEntries: number;
   };
   readonly observability: {
     readonly logLevel: LogLevel;
@@ -184,8 +194,9 @@ function buildConfig(raw: RawEnv): AppConfig {
       stackabilityPath: readString(raw, "PACKING_STACKABILITY_PATH", "config/stackability.json"),
       columnMapPath: readString(raw, "PACKING_COLUMN_MAP_PATH", "config/column-map.json"),
       vansPath: readString(raw, "PACKING_VANS_PATH", "config/vans.json"),
-      toleranceMm: readFloat(raw, "PACKING_TOLERANCE_MM", 5),
+      toleranceM: readFloat(raw, "PACKING_TOLERANCE_M", 0.005),
       maxVansToConsider: readInt(raw, "PACKING_MAX_VANS", 50),
+      maxPackableUnits: readInt(raw, "PACKING_MAX_PACKABLE_UNITS", 2000),
     },
     routing: {
       provider: readString(raw, "ROUTE_PROVIDER", "google"),
@@ -194,9 +205,12 @@ function buildConfig(raw: RawEnv): AppConfig {
       fragilitySurchargePerItem: readFloat(raw, "FRAGILITY_SURCHARGE_PER_ITEM", 5),
       currencySymbol: readString(raw, "CURRENCY_SYMBOL", "£"),
       returnFactor: readFloat(raw, "ROUTE_RETURN_FACTOR", 2),
+      driverHourlyRate: readFloat(raw, "DRIVER_HOURLY_RATE", 15),
+      loadUnloadMinutesPerVan: readFloat(raw, "LOAD_UNLOAD_MINUTES_PER_VAN", 45),
     },
     storage: {
-      enabled: readBool(raw, "R2_STORAGE_ENABLED", false),
+      enabled: readBool(raw, "STORAGE_ENABLED", false),
+      dir: readString(raw, "STORAGE_DIR", "data/uploads"),
       accountId: readString(raw, "R2_ACCOUNT_ID", ""),
       accessKeyId: readString(raw, "R2_ACCESS_KEY_ID", ""),
       secretAccessKey: readString(raw, "R2_SECRET_ACCESS_KEY", ""),
@@ -204,6 +218,7 @@ function buildConfig(raw: RawEnv): AppConfig {
     },
     quoteHistory: {
       path: readString(raw, "QUOTE_HISTORY_PATH", "data/quote-history.json"),
+      maxEntries: readInt(raw, "QUOTE_HISTORY_MAX_ENTRIES", 20),
     },
     observability: {
       logLevel: readLogLevel(raw, "LOG_LEVEL", "info"),

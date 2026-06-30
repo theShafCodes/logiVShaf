@@ -13,7 +13,7 @@ import { stackPressureKpa } from "@/lib/packing/placement-validator";
 import type { Placement } from "@/lib/packing/packing.types";
 import { makeItem, makeVan } from "./fixtures";
 
-const packer = new HeuristicPacker({ toleranceMm: 5 });
+const packer = new HeuristicPacker({ toleranceM: 0.005 });
 
 /** Group placements into vertical columns (same x,y footprint), bottom → top. */
 function columns(ps: Placement[]): Placement[][] {
@@ -47,7 +47,7 @@ function report(title: string, ps: Placement[]): string {
 describe("stacking report (visual + invariants)", () => {
   it("standards build columns; fragile rides only on fragile", () => {
     // Footprint fits one box; tall enough for a column ⇒ stacking is the only fit.
-    const van = makeVan({ interior: { l: 620, w: 620, h: 2400 }, maxPayloadKg: 2000 });
+    const van = makeVan({ interior: { l: 0.62, w: 0.62, h: 2.4 }, maxPayloadKg: 2000 });
     const items = [
       makeItem({ id: "std-1", fragility: "standard", weightKg: 40 }),
       makeItem({ id: "std-2", fragility: "standard", weightKg: 40 }),
@@ -57,17 +57,17 @@ describe("stacking report (visual + invariants)", () => {
     console.log(report("3 standards, footprint-of-one van", r.placements));
 
     const zs = r.placements.map((p) => p.position.z).sort((a, b) => a - b);
-    expect(zs).toEqual([0, 700, 1400]); // a real 3-high column
+    expect(zs).toEqual([0, 0.7, 1.4]); // a real 3-high column
   });
 
   it("crush limit floors an over-pressure box instead of stacking it", () => {
-    const van = makeVan({ interior: { l: 1500, w: 620, h: 2400 }, maxPayloadKg: 2000 });
+    const van = makeVan({ interior: { l: 1.5, w: 0.62, h: 2.4 }, maxPayloadKg: 2000 });
     // Both items share the same maxStackPressureKpa so volume is the sort tiebreak.
     // soft has slightly larger dims → larger volume → sorts first → placed on floor.
     // heavy then tries to stack on soft: ~7-8 kPa exceeds soft's 5 kPa limit → refused.
     const soft = makeItem({
       id: "soft", weightKg: 10, maxStackPressureKpa: 5, canSupportWeightKg: 100,
-      dimensions: { l: 600, w: 600, h: 750 },
+      dimensions: { l: 0.6, w: 0.6, h: 0.75 },
     });
     const heavy = makeItem({ id: "heavy", weightKg: 300, maxStackPressureKpa: 5, canSupportWeightKg: 10 });
     const r = packer.pack([soft, heavy], van);
@@ -82,7 +82,7 @@ describe("stacking report (visual + invariants)", () => {
   });
 
   it("a fragile column forms, and no standard sits on a fragile box", () => {
-    const van = makeVan({ interior: { l: 1300, w: 620, h: 2400 }, maxPayloadKg: 2000 });
+    const van = makeVan({ interior: { l: 1.3, w: 0.62, h: 2.4 }, maxPayloadKg: 2000 });
     const items = [
       makeItem({ id: "glass-1", fragility: "fragile", weightKg: 15 }),
       makeItem({ id: "glass-2", fragility: "fragile", weightKg: 15 }),
@@ -97,7 +97,7 @@ describe("stacking report (visual + invariants)", () => {
       const standardOnTop = r.placements.some(
         (p) =>
           !p.fragile &&
-          Math.abs(p.position.z - top) <= 5 &&
+          Math.abs(p.position.z - top) <= 0.005 &&
           p.position.x < f.position.x + f.size.x &&
           f.position.x < p.position.x + p.size.x &&
           p.position.y < f.position.y + f.size.y &&

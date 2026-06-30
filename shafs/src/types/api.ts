@@ -98,7 +98,7 @@ export interface PackResponse {
 
 // ── Stage 5 — Quote ──────────────────────────────────────────────────────────
 
-export interface Route { origin: string; destination: string; distanceMiles: number; durationSeconds: number; }
+export interface Route { origin: string; destination: string; distanceMiles: number; durationSeconds: number; distanceMethod: "road" | "straight-line"; }
 export interface QuoteLineItem { label: string; amount: number; }
 /** One vehicle in a quote — described by capability + id, never by brand alone. */
 export interface QuoteVan { id: string; label: string; description: string; perMileRate: number; distanceCost: number; }

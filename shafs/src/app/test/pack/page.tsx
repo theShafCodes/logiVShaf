@@ -156,7 +156,7 @@ export default function PackTestPage() {
               const v = vans.find((v) => v.id === selectedVanId);
               return v ? (
                 <p style={{ margin: `${spacing.xs}px 0 0`, fontSize: font.xs, color: color.muted }}>
-                  {(v.interior.l/1000).toFixed(2)} × {(v.interior.w/1000).toFixed(2)} × {(v.interior.h/1000).toFixed(2)} m · {v.maxPayloadKg} kg
+                  {v.interior.l.toFixed(2)} × {v.interior.w.toFixed(2)} × {v.interior.h.toFixed(2)} m · {v.maxPayloadKg} kg
                 </p>
               ) : null;
             })()}

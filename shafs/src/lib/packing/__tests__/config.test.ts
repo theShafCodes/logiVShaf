@@ -8,9 +8,9 @@ import { surfaceM2, volumeM3 } from "@/lib/packing/geometry";
 import { readConfigJson } from "./fixtures";
 
 describe("geometry (reference formulas)", () => {
-  it("surface_m2 = (L*H)/1e6, volume_m3 = (L*W*H)/1e9", () => {
-    expect(surfaceM2(600, 700)).toBeCloseTo(0.42, 6);
-    expect(volumeM3({ l: 600, w: 600, h: 700 })).toBeCloseTo(0.252, 6);
+  it("surface_m2 = l * h, volume_m3 = l * w * h", () => {
+    expect(surfaceM2(0.6, 0.7)).toBeCloseTo(0.42, 6);
+    expect(volumeM3({ l: 0.6, w: 0.6, h: 0.7 })).toBeCloseTo(0.252, 6);
   });
 });
 
@@ -43,12 +43,12 @@ describe("weight estimator", () => {
   const matrix = parseStackabilityFrom(readConfigJson("config/stackability.json"));
 
   it("uses explicit weight when present", () => {
-    expect(estimateWeightKg({ dimensions: { l: 600, w: 600, h: 700 }, explicitWeightKg: 42, densityKgPerM3: 180 })).toBe(42);
+    expect(estimateWeightKg({ dimensions: { l: 0.6, w: 0.6, h: 0.7 }, explicitWeightKg: 42, densityKgPerM3: 180 })).toBe(42);
   });
 
   it("estimates from volume * density when no explicit weight", () => {
     const density = resolveStackRules(matrix, "base-cabinet").densityKgPerM3;
-    const kg = estimateWeightKg({ dimensions: { l: 1000, w: 1000, h: 1000 }, densityKgPerM3: density });
+    const kg = estimateWeightKg({ dimensions: { l: 1.0, w: 1.0, h: 1.0 }, densityKgPerM3: density });
     expect(kg).toBeCloseTo(density, 6); // 1 m³ × density
   });
 
@@ -60,10 +60,11 @@ describe("weight estimator", () => {
 describe("column map", () => {
   const map = parseColumnMapFrom(readConfigJson("config/column-map.json"));
 
-  it("declares cm→mm scaling and a derived depth column", () => {
-    expect(map.unitScale).toBe(10);
-    expect(map.columns.dimensionP).toBeUndefined(); // depth is derived
-    expect(map.columns.quantity).toBeUndefined(); // one unit per row
+  it("declares metres, English decimals, and explicit depth + quantity columns", () => {
+    expect(map.inputUnit).toBe("m");
+    expect(map.decimalSeparator).toBe("."); // English/US decimals (1.03 = 1.03 m, not 103)
+    expect(map.columns.dimensionP).toBe(6); // explicit depth column (not derived)
+    expect(map.columns.quantity).toBe(8); // quantity expanded per-unit by the packer
   });
 
   it("matches category patterns against the description, else defaults", () => {
@@ -75,7 +76,7 @@ describe("column map", () => {
   it("still supports explicit code-pattern maps (legacy Arredo3)", () => {
     const legacy = parseColumnMapFrom({
       version: 1,
-      unitScale: 1,
+      inputUnit: "mm",
       columns: { code: 1, quantity: 2, description: 3, dimensionL: 4, dimensionH: 5, dimensionP: 6 },
       defaultCategory: "base-cabinet",
       categoryPatterns: [{ category: "appliance", pattern: "^EFOR" }],

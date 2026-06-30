@@ -82,9 +82,9 @@ export function PlacesInput({ value, onChange, onSelect, placeholder, style }: P
           {!loading && suggestions.length === 0 && (
             <div style={{ padding: "8px 12px", fontSize: font.sm, color: color.muted }}>No matching places</div>
           )}
-          {suggestions.map((s) => (
+          {suggestions.map((s, i) => (
             <button
-              key={s}
+              key={`${i}-${s}`}
               type="button"
               onMouseDown={(e) => { e.preventDefault(); pick(s); }}
               style={{
