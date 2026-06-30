@@ -17,7 +17,8 @@
       },
       "fuelCostPerMile": 0.19,
       "perMileRate": 0.82,
-      "quantity": 3
+      "quantity": 65,
+      "sizeClass": "Small"
     },
     {
       "id": "city-compact",
@@ -34,7 +35,8 @@
       },
       "fuelCostPerMile": 0.21,
       "perMileRate": 0.9,
-      "quantity": 3
+      "quantity": 60,
+      "sizeClass": "Small"
     },
     {
       "id": "small-panel",
@@ -51,7 +53,8 @@
       },
       "fuelCostPerMile": 0.23,
       "perMileRate": 0.98,
-      "quantity": 3
+      "quantity": 55,
+      "sizeClass": "Small"
     },
     {
       "id": "partner-long",
@@ -68,7 +71,8 @@
       },
       "fuelCostPerMile": 0.25,
       "perMileRate": 1.02,
-      "quantity": 2
+      "quantity": 50,
+      "sizeClass": "Medium"
     },
     {
       "id": "medium-panel",
@@ -85,7 +89,8 @@
       },
       "fuelCostPerMile": 0.27,
       "perMileRate": 1.28,
-      "quantity": 3
+      "quantity": 50,
+      "sizeClass": "Medium"
     },
     {
       "id": "luton-dropwell",
@@ -102,7 +107,8 @@
       },
       "fuelCostPerMile": 0.31,
       "perMileRate": 1.45,
-      "quantity": 2
+      "quantity": 35,
+      "sizeClass": "Luton"
     },
     {
       "id": "ducato-l2h2",
@@ -119,7 +125,8 @@
       },
       "fuelCostPerMile": 0.33,
       "perMileRate": 1.6,
-      "quantity": 2
+      "quantity": 35,
+      "sizeClass": "Large"
     },
     {
       "id": "ducato-l3h2",
@@ -136,7 +143,8 @@
       },
       "fuelCostPerMile": 0.35,
       "perMileRate": 1.8,
-      "quantity": 2
+      "quantity": 30,
+      "sizeClass": "Large"
     },
     {
       "id": "sprinter-l3h2",
@@ -153,7 +161,8 @@
       },
       "fuelCostPerMile": 0.38,
       "perMileRate": 1.95,
-      "quantity": 2
+      "quantity": 30,
+      "sizeClass": "Large"
     },
     {
       "id": "transit-xlwb",
@@ -168,9 +177,10 @@
         "w": 1550,
         "h": 1820
       },
-      "fuelCostPerMile": 0.40,
+      "fuelCostPerMile": 0.4,
       "perMileRate": 2.15,
-      "quantity": 2
+      "quantity": 25,
+      "sizeClass": "Large"
     },
     {
       "id": "luton-tail-lift",
@@ -187,7 +197,8 @@
       },
       "fuelCostPerMile": 0.44,
       "perMileRate": 2.4,
-      "quantity": 2
+      "quantity": 25,
+      "sizeClass": "Luton"
     },
     {
       "id": "box-truck-7-5t",
@@ -204,7 +215,8 @@
       },
       "fuelCostPerMile": 0.55,
       "perMileRate": 3.1,
-      "quantity": 2
+      "quantity": 20,
+      "sizeClass": "Box truck"
     },
     {
       "id": "box-truck-12t",
@@ -219,9 +231,10 @@
         "w": 2350,
         "h": 2300
       },
-      "fuelCostPerMile": 0.70,
+      "fuelCostPerMile": 0.7,
       "perMileRate": 3.65,
-      "quantity": 1
+      "quantity": 12,
+      "sizeClass": "Box truck"
     },
     {
       "id": "box-truck-18t",
@@ -238,7 +251,8 @@
       },
       "fuelCostPerMile": 0.92,
       "perMileRate": 4.2,
-      "quantity": 1
+      "quantity": 8,
+      "sizeClass": "Box truck"
     }
   ]
 }

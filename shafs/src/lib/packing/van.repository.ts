@@ -96,6 +96,15 @@ function parseVan(value: unknown, i: number): Van {
             }
             return Math.round(v);
           })(),
+    sizeClass:
+      o.sizeClass === undefined
+        ? undefined
+        : (() => {
+            if (typeof o.sizeClass !== "string" || o.sizeClass.trim() === "") {
+              throw new VanConfigError(`vans[${i}].sizeClass must be a non-empty string`);
+            }
+            return o.sizeClass.trim();
+          })(),
   };
 }
 

@@ -91,6 +91,13 @@ export interface Van {
   readonly perMileRate: number;
   /** Available units in the fleet; undefined → treated as 5 by the allocator. */
   readonly quantity?: number;
+  /**
+   * Operator-facing size band (e.g. "Small", "Large", "Box truck"). Free-form so
+   * new bands need only be typed in Fleet Setup — the Cost Planner groups by this
+   * string and orders bands by volume, so nothing here is hardcoded. Unused by the
+   * packer/pricer.
+   */
+  readonly sizeClass?: string;
 }
 
 /** One placed unit of an item. Size maps l→x, w→y, h→z (natural orientation). */

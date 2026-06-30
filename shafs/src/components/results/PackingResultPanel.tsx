@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { color, font, spacing, radius } from "@/styles/tokens";
 import { smartNum } from "@/lib/fmt";
 import { Van3DViewer } from "@/components/results/Van3DViewer";
+import { VanIcon } from "@/components/results/VanIcon";
 import { describeVan } from "@/lib/packing/van-format";
 import { computeUtilization } from "@/lib/packing/placement-validator";
 import type { PackedItem, PackingResult, Placement, UnplacedItem } from "@/types/api";
@@ -39,6 +40,33 @@ export function PackingResultPanel({
 
   const onItemPlaced = (itemId: string) =>
     setLocalUnplaced((prev) => prev.filter((u) => u.id !== itemId));
+
+  // Placements are lifted out of the per-van cards so only ONE van renders its
+  // (expensive) 3D canvas at a time while manual edits to the others survive a
+  // switch. Re-sync only when the packer actually produces new placements — a
+  // signature over item ids + positions, so an unrelated parent re-render or a
+  // manual drag here never clobbers in-progress edits.
+  const packerSig = fleet
+    .map((r) => r.placements.map((p) => `${p.itemId}@${p.position.x},${p.position.y},${p.position.z}`).join(","))
+    .join("|");
+  const [placementsByVan, setPlacementsByVan] = useState<Placement[][]>(() => fleet.map((r) => [...r.placements]));
+  useEffect(() => {
+    setPlacementsByVan(fleet.map((r) => [...r.placements]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packerSig]);
+
+  // Which van is maximised in the focus viewer.
+  const [focused, setFocused] = useState(0);
+  useEffect(() => {
+    if (focused > fleet.length - 1) setFocused(0);
+  }, [fleet.length, focused]);
+
+  const onVanPlacements = (vanIndex: number, next: Placement[]) => {
+    const current = placementsByVan[vanIndex] ?? [];
+    const curIds = new Set(current.map((p) => p.itemId));
+    next.filter((p) => !curIds.has(p.itemId)).forEach((p) => onItemPlaced(p.itemId));
+    setPlacementsByVan((prev) => prev.map((arr, i) => (i === vanIndex ? next : arr)));
+  };
 
   const placedUnits = fleet.reduce((s, r) => s + r.placements.length, 0);
   const totalWeightKg = fleet.reduce(
@@ -111,10 +139,31 @@ export function PackingResultPanel({
         </div>
       </div>
 
-      {/* Per-van detail (brand-free: "Van N" + description) */}
-      {fleet.map((r, vi) => (
-        <VanCard key={vi} index={vi} result={r} nameFor={nameFor} itemById={itemById} onItemPlaced={onItemPlaced} />
-      ))}
+      {/* Per-van detail — a gallery: pick a van from the strip, study it in the
+          big focus viewer. Only the focused van mounts a 3D canvas, so a 25-van
+          fleet stays light instead of stacking 25 WebGL scenes down the page. */}
+      {fleet.length > 1 && (
+        <VanStrip
+          fleet={fleet}
+          placementsByVan={placementsByVan}
+          focused={focused}
+          onPick={setFocused}
+        />
+      )}
+      {fleet[focused] && (
+        <VanCard
+          key={focused}
+          index={focused}
+          total={fleet.length}
+          result={fleet[focused]}
+          placements={placementsByVan[focused] ?? fleet[focused].placements}
+          onPlacementsChange={(next) => onVanPlacements(focused, next)}
+          onPrev={fleet.length > 1 ? () => setFocused((i) => (i - 1 + fleet.length) % fleet.length) : undefined}
+          onNext={fleet.length > 1 ? () => setFocused((i) => (i + 1) % fleet.length) : undefined}
+          nameFor={nameFor}
+          itemById={itemById}
+        />
+      )}
 
       {/* Genuinely unplaced cargo — draggable onto a van 3D viewer */}
       {unplaced.length > 0 && (
@@ -162,40 +211,99 @@ export function PackingResultPanel({
   );
 }
 
-/* ── Per-van card ───────────────────────────────────────────────────────── */
+/* ── Van strip — collapsed thumbnails, one per van, click to maximise ─────── */
+
+function VanStrip({
+  fleet, placementsByVan, focused, onPick,
+}: {
+  fleet: PackingResult[];
+  placementsByVan: Placement[][];
+  focused: number;
+  onPick: (i: number) => void;
+}) {
+  return (
+    <div style={card}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: spacing.sm }}>
+        <p style={{ ...label, margin: 0 }}>Fleet — {fleet.length} vans</p>
+        <span style={{ fontSize: font.xs, color: color.muted }}>Tap a van to inspect its load</span>
+      </div>
+      <div style={{ display: "flex", gap: spacing.sm, overflowX: "auto", paddingBottom: spacing.xs }}>
+        {fleet.map((r, i) => {
+          const isOn = i === focused;
+          const placed = (placementsByVan[i] ?? r.placements).length;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onPick(i)}
+              title={`Van ${i + 1} — ${r.van.label}`}
+              style={{
+                flex: "0 0 auto",
+                width: 104,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                padding: spacing.sm,
+                borderRadius: radius.card - 4,
+                cursor: "pointer",
+                background: isOn ? color.accentMuted : color.surfaceSub,
+                border: `1px solid ${isOn ? color.accent : color.border}`,
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "flex-end", height: 34 }}>
+                <VanIcon lengthMm={r.van.interior.l} heightMm={r.van.interior.h} px={52} />
+              </span>
+              <span style={{ fontSize: font.xs, fontWeight: 700, color: color.text }}>Van {i + 1}</span>
+              <span style={{ fontSize: font.xs, color: color.muted, whiteSpace: "nowrap" }}>
+                {placed} item{placed !== 1 ? "s" : ""} · {smartNum(r.utilization * 100)}%
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Per-van card (the maximised focus view) ─────────────────────────────── */
 
 function VanCard({
-  index, result, nameFor, itemById, onItemPlaced,
+  index, total, result, placements, onPlacementsChange, onPrev, onNext, nameFor, itemById,
 }: {
   index: number;
+  total: number;
   result: PackingResult;
+  placements: Placement[];
+  onPlacementsChange: (next: Placement[]) => void;
+  onPrev?: () => void;
+  onNext?: () => void;
   nameFor: (id: string) => string;
   itemById: Map<string, PackedItem>;
-  onItemPlaced: (itemId: string) => void;
 }) {
-  const [placements, setPlacements] = useState<Placement[]>(result.placements);
-  // Sync when packing reruns (e.g. fragility toggle triggers repack → new result prop).
-  useEffect(() => { setPlacements(result.placements); }, [result.placements]);
   const placed = placements.length;
   const totalWeight = placements.reduce((s, p) => s + p.weightKg, 0);
   const payloadUtil = totalWeight / result.van.maxPayloadKg;
   const names = placements.map((p) => nameFor(p.itemId));
   const { volumeFill, floorFootprint } = computeUtilization(placements, result.van.interior);
 
-  const handlePlacementsChange = (next: Placement[]) => {
-    // Find any new placements added (not in current list) and fire onItemPlaced.
-    const currentIds = new Set(placements.map((p) => p.itemId));
-    next.filter((p) => !currentIds.has(p.itemId)).forEach((p) => onItemPlaced(p.itemId));
-    setPlacements(next);
-  };
+  const handlePlacementsChange = onPlacementsChange;
 
   return (
     <div style={card}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap", gap: spacing.sm }}>
-        <p style={{ ...label, margin: 0 }}>Van {index + 1}</p>
-        <span style={{ fontSize: font.sm, color: color.muted }}>
-          {describeVan(result.van.interior, result.van.maxPayloadKg)}
-        </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap", gap: spacing.sm }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: spacing.sm, flexWrap: "wrap" }}>
+          <p style={{ ...label, margin: 0 }}>Van {index + 1}{total > 1 ? ` of ${total}` : ""}</p>
+          <span style={{ fontSize: font.sm, color: color.muted }}>
+            {describeVan(result.van.interior, result.van.maxPayloadKg)}
+          </span>
+        </div>
+        {(onPrev || onNext) && (
+          <div style={{ display: "flex", gap: spacing.xs }}>
+            <button type="button" onClick={onPrev} aria-label="Previous van" style={navBtn}>‹ Prev</button>
+            <button type="button" onClick={onNext} aria-label="Next van" style={navBtn}>Next ›</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: spacing.sm, marginBottom: spacing.md }}>
@@ -303,6 +411,17 @@ const td: React.CSSProperties = {
   padding: "6px 10px",
   color: color.text,
   borderBottom: `1px solid ${color.border}`,
+};
+
+const navBtn: React.CSSProperties = {
+  border: `1px solid ${color.border}`,
+  background: color.surfaceSub,
+  color: color.text,
+  borderRadius: 999,
+  padding: "4px 12px",
+  fontSize: font.xs,
+  fontWeight: 600,
+  cursor: "pointer",
 };
 
 const tdSm: React.CSSProperties = { padding: "5px 8px", color: color.text, borderBottom: `1px solid ${color.border}` };

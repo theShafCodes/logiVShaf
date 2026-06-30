@@ -19,7 +19,7 @@ function getField(draft: Van, key: string): string | number {
   if (key === "interior.w") return draft.interior.w ? +(draft.interior.w / 1000).toFixed(3) : "";
   if (key === "interior.h") return draft.interior.h ? +(draft.interior.h / 1000).toFixed(3) : "";
   const val = draft[key as keyof Van] as string | number | undefined;
-  return val ?? (key === "id" || key === "label" ? "" : "");
+  return val ?? (key === "id" || key === "label" || key === "sizeClass" ? "" : "");
 }
 
 function setField(draft: Van, key: string, raw: string): Van {
@@ -28,7 +28,9 @@ function setField(draft: Van, key: string, raw: string): Van {
   if (key === "interior.w") return { ...draft, interior: { ...draft.interior, w: Math.round(Number(raw) * 1000) } };
   if (key === "interior.h") return { ...draft, interior: { ...draft.interior, h: Math.round(Number(raw) * 1000) } };
   const k = key as keyof Van;
-  return { ...draft, [k]: k === "id" || k === "label" ? raw : raw === "" ? undefined : Number(raw) } as Van;
+  if (k === "id" || k === "label") return { ...draft, [k]: raw } as Van;
+  if (k === "sizeClass") return { ...draft, sizeClass: raw === "" ? undefined : raw };
+  return { ...draft, [k]: raw === "" ? undefined : Number(raw) } as Van;
 }
 
 export function VanConfigPanel() {
@@ -46,6 +48,8 @@ export function VanConfigPanel() {
   useEffect(() => { void load(); }, []);
 
   const isEditing = draft.id !== "" && vans.some((v) => v.id === draft.id);
+  // Existing bands, for the size-class suggestions — reuse one or type a new one.
+  const sizeClasses = Array.from(new Set(vans.map((v) => v.sizeClass).filter((c): c is string => !!c))).sort();
 
   const save = async () => {
     setMessage(null);
@@ -99,8 +103,11 @@ export function VanConfigPanel() {
   return (
     <div style={{ background: color.surface, border: `1px solid ${color.border}`, borderRadius: radius.card, padding: spacing.lg, display: "flex", flexDirection: "column", gap: spacing.md }}>
       <div>
-        <p style={sectionLabel}>Fleet admin</p>
-        <h3 style={{ margin: 0, fontSize: font.md, color: color.text, fontWeight: 700, letterSpacing: "-0.01em" }}>Van config</h3>
+        <p style={sectionLabel}>Fleet setup · the master list</p>
+        <h3 style={{ margin: 0, fontSize: font.md, color: color.text, fontWeight: 700, letterSpacing: "-0.01em" }}>Van catalogue</h3>
+        <p style={{ margin: `${spacing.xs}px 0 0`, fontSize: font.xs, color: color.muted, lineHeight: 1.5 }}>
+          The vans your company owns. The Cost planner and every Load plan read from here — edit a van here and it updates everywhere.
+        </p>
       </div>
 
       {/* ── Form ── */}
@@ -114,6 +121,21 @@ export function VanConfigPanel() {
           {field("id",    "Van ID",       "e.g. transit-l2", "text")}
           {field("label", "Display name", "e.g. Transit L2", "text")}
         </div>
+
+        {/* Size band — groups the van in the Cost planner */}
+        <label style={{ ...labelWrap, marginTop: spacing.sm }}>
+          <span style={labelText}>Size class</span>
+          <input
+            list="van-size-classes"
+            value={getField(draft, "sizeClass")}
+            onChange={(e) => setDraft((d) => setField(d, "sizeClass", e.target.value))}
+            placeholder="e.g. Small · Medium · Large · Luton · Box truck"
+            style={inputStyle}
+          />
+          <datalist id="van-size-classes">
+            {sizeClasses.map((c) => <option key={c} value={c} />)}
+          </datalist>
+        </label>
 
         {/* Capacity + pricing */}
         <p style={{ ...fieldGroupLabel }}>Capacity &amp; pricing</p>
@@ -176,7 +198,14 @@ export function VanConfigPanel() {
                 onClick={() => { setDraft(v); setConfirmDeleteId(null); setMessage(null); }}
                 style={{ border: "none", background: "transparent", padding: 0, color: color.text, cursor: "pointer", textAlign: "left", flex: 1, minWidth: 0 }}
               >
-                <div style={{ fontWeight: 600, fontSize: font.sm, color: color.text }}>{v.label}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontWeight: 600, fontSize: font.sm, color: color.text }}>{v.label}</span>
+                  {v.sizeClass && (
+                    <span style={{ fontSize: font.xs, fontWeight: 600, color: color.muted, background: color.surfaceSub, border: `1px solid ${color.border}`, borderRadius: radius.badge, padding: "1px 6px" }}>
+                      {v.sizeClass}
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: font.xs, color: color.muted, marginTop: 1 }}>{v.id}</div>
                 <div style={{ fontSize: font.xs, color: color.muted, marginTop: 2 }}>
                   {(v.interior.l / 1000).toFixed(2)} × {(v.interior.w / 1000).toFixed(2)} × {(v.interior.h / 1000).toFixed(2)} m
